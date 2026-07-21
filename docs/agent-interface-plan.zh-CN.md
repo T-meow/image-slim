@@ -254,10 +254,10 @@ capabilities，但所有扫描和写入请求返回 `root_not_allowed`。
 - `tools/list` 五工具合计小于 16 KiB；10,000 项计划汇总、分页预算、同大小同时间戳源变化、
   幂等、计划过期、无权限根目录和 MCP stdout 纯净度均有自动测试。
 - GUI 便携版：`release/image-slim_0.1.0_x64-portable.exe`，9,920,000 字节，SHA-256
-  `fc2c60a5a2ad33c7d3aef332c45fef63d87cec754b58ef64e223a028b0da44a6`。
+  `9bb5fe11447db11f8fce849f8d915a9b970353105b13f65d0d44b453913be1d5`。
 - Agent：`release/image-slim-agent_0.1.0_x64.exe`，6,267,392 字节，SHA-256
-  `182955fb91d32a7911cd18395c9632ad7e47b9a0df63c7bb1ce15bf7158bfa5a`。
-- NSIS：`release/image-slim_0.1.0_x64-setup.exe`，4,561,175 字节，SHA-256
-  `65636e8a662321804926c18dc3a1f3891776c46875ae7bd5a16e295c5778709e`。
+  `692539a6f014787332b5514623bc2cde5f77466e1a3f93259dffc6dd5e2e0dbb`。
+- NSIS：`release/image-slim_0.1.0_x64-setup.exe`，4,560,113 字节，SHA-256
+  `b8e65caccae89d3d6869cd85c54164ae20e4dd2d92b922714c2fa23bfe8591d4`。
 - 最终安装包已静默安装到隔离目录，确认 GUI、Agent 与卸载器同目录且 Agent capabilities 正常；
   静默卸载后目录移除。GUI 便携版也已在不含 Agent 的独立目录启动通过。
