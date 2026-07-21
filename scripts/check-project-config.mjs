@@ -85,6 +85,9 @@ if (!existsSync(new URL('../scripts/stage-release.mjs', import.meta.url))) {
 if (!existsSync(new URL('../scripts/prepare-agent-sidecar.mjs', import.meta.url))) {
   failures.push('The Agent sidecar preparation script is missing');
 }
+if (!existsSync(new URL('../third-party/losslessly-0.1.1/LICENSE', import.meta.url))) {
+  failures.push('The bundled license for adapted losslessly 0.1.1 source is missing');
+}
 if (!ci.includes('cargo test --workspace --locked')) {
   failures.push('Windows CI must test every Cargo workspace package');
 }

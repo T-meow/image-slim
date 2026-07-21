@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { homedir } from 'node:os';
 
 const root = resolve(import.meta.dirname, '..');
 const cargoRoot = join(root, 'src-tauri');
@@ -94,21 +93,17 @@ function nodeSections() {
 }
 
 function adaptedSourceSection() {
-  const cargoHome = process.env.CARGO_HOME || join(homedir(), '.cargo');
-  const sources = join(cargoHome, 'registry', 'src');
-  if (!existsSync(sources)) return [];
-  for (const registry of readdirSync(sources)) {
-    const directory = join(sources, registry, 'losslessly-0.1.1');
-    if (existsSync(directory)) {
-      return [section(
-        'Adapted source: losslessly 0.1.1',
-        'MIT',
-        'https://github.com/kdoroszewicz/losslessly',
-        licenseFiles(directory)
-      )];
-    }
+  const directory = join(root, 'third-party', 'losslessly-0.1.1');
+  const license = join(directory, 'LICENSE');
+  if (!existsSync(license)) {
+    throw new Error('The bundled license for adapted losslessly 0.1.1 source was not found');
   }
-  throw new Error('The license for adapted losslessly 0.1.1 source was not found');
+  return [section(
+    'Adapted source: losslessly 0.1.1',
+    'MIT',
+    'https://github.com/kdoroszewicz/losslessly',
+    [license]
+  )];
 }
 
 const introduction = `image-slim 0.1.0 third-party licenses
