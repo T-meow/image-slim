@@ -88,5 +88,3 @@ tool_timeout_sec = 3600
 ```
 
 需要多个根目录时重复 `--allow-root` 和路径；只有确需覆盖原图时才加入 `--allow-overwrite`。
-完整边界、响应预算和验收要求见
-[`agent-interface-plan.zh-CN.md`](agent-interface-plan.zh-CN.md)。
