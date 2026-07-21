@@ -61,6 +61,9 @@ if (!ci.includes('npm run tauri:build:no-bundle')) {
 if (!ci.includes('npm run release:check')) {
   failures.push('CI is missing the release staging configuration check');
 }
+if (!ci.includes('npm run licenses') || !ci.includes('git diff --exit-code -- THIRD_PARTY_LICENSES.txt')) {
+  failures.push('CI is missing the generated third-party license consistency check');
+}
 if (!packageJson.scripts?.['tauri:build']?.includes('scripts/stage-release.mjs')) {
   failures.push('The bundled Tauri build does not stage files into release/');
 }
