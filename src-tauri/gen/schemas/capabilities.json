@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Allow the main image-slim window to use core APIs and local file dialogs.","local":true,"windows":["main"],"permissions":["core:default","dialog:default"]}}

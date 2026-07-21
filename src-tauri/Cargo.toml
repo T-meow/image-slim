@@ -1,0 +1,53 @@
+[package]
+name = "image-slim"
+version = "0.1.0"
+description = "Offline image compression for Windows"
+authors = ["image-slim contributors"]
+edition = "2024"
+rust-version = "1.93"
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "image_slim_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "image-slim"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+anyhow = "1.0"
+blake3 = "1"
+dunce = "1.0"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
+imagequant = "4.4.1"
+img-parts = "0.4.0"
+libc = "0.2"
+mozjpeg = { version = "0.10.13", default-features = false }
+mozjpeg-sys = { version = "2.2.3", default-features = false, features = ["jpegtran"] }
+oxipng = { version = "10.1.1", default-features = false, features = ["parallel", "zopfli"] }
+png = "0.18.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+ts-rs = { version = "=12.0.1", features = ["serde-compat"] }
+uuid = { version = "1", features = ["v4"] }
+walkdir = "2.5"
+webpx = { version = "0.4.0", features = ["icc"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_System_SystemInformation"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+strip = "symbols"
+lto = true
+codegen-units = 1
+panic = "unwind"
+opt-level = 3
