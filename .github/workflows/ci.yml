@@ -15,10 +15,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -40,6 +40,11 @@ jobs:
 
       - name: Check release staging configuration
         run: npm run release:check
+
+      - name: Check generated third-party licenses
+        run: |
+          npm run licenses
+          git diff --exit-code -- THIRD_PARTY_LICENSES.txt
 
       - name: Check application versions
         run: npm run version:check
@@ -72,10 +77,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
