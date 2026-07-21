@@ -56,15 +56,15 @@ jobs:
 
       - name: Lint Rust
         working-directory: src-tauri
-        run: cargo clippy --all-targets --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Test Rust
         working-directory: src-tauri
-        run: cargo test --locked
+        run: cargo test --workspace --locked
 
       - name: Check Rust targets
         working-directory: src-tauri
-        run: cargo check --all-targets --locked
+        run: cargo check --workspace --all-targets --locked
 
   build-smoke:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
@@ -90,3 +90,13 @@ jobs:
 
       - name: Build Tauri executable
         run: npm run tauri:build:no-bundle
+
+      - name: Smoke test Agent CLI
+        shell: pwsh
+        run: |
+          $agent = 'src-tauri/target/release/image-slim-agent.exe'
+          if (-not (Test-Path -LiteralPath $agent)) { throw "Missing $agent" }
+          $result = & $agent capabilities --json | ConvertFrom-Json
+          if (-not $result.ok -or $result.result.agent_protocol_version -ne 1) {
+            throw 'Agent capabilities response is invalid'
+          }

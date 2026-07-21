@@ -10,9 +10,27 @@
   <a href="README.md">简体中文</a> · <strong>English</strong>
 </p>
 
+<p align="center">
+  <a href="https://t-meow.github.io/image-slim/"><strong>Website & downloads</strong></a> ·
+  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.1.0">Release v0.1.0</a> ·
+  <a href="https://github.com/T-meow/image-slim/issues">Issues</a>
+</p>
+
 image-slim is built with Tauri 2, Svelte 5, and Rust. It compresses PNG, JPEG,
 and WebP files locally without uploads, accounts, or telemetry. The current version
 is `0.1.0` and supports Windows 10/11 x64 only.
+
+## Download
+
+| Edition | Use case | Download |
+|---|---|---|
+| Windows installer | Recommended; installs the GUI and Agent | [`image-slim_0.1.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe) |
+| Portable GUI | Single-file desktop app, no install required | [`image-slim_0.1.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe) |
+| Standalone Agent | JSON CLI / MCP stdio automation | [`image-slim-agent_0.1.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim-agent_0.1.0_x64.exe) |
+
+See [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/SHA256SUMS.txt)
+for complete checksums. Version `0.1.0` is not code-signed, so Windows SmartScreen may show an
+unknown-publisher warning. Verify a download with `Get-FileHash <path> -Algorithm SHA256`.
 
 ## Features
 
@@ -23,6 +41,31 @@ is `0.1.0` and supports Windows 10/11 x64 only.
 - Detect external source changes before replacement and atomically replace from a same-directory temporary file.
 - Remove privacy-sensitive metadata by default while preserving display-critical information, or retain supported metadata.
 - Switch between Simplified Chinese/English and System/Light/Dark themes; preferences are stored locally.
+- Use the installed `image-slim-agent.exe` through JSON CLI or MCP stdio within explicit allowed roots.
+
+## GUI, CLI, and MCP
+
+The desktop GUI handles everyday batches with drag and drop, queues, previews, retries, and output-location
+actions. The Agent uses the same `image-slim-core` for scripts and AI tool automation. It does not launch a
+GUI, listen on a network port, or return image bytes.
+
+```powershell
+# Inspect capabilities; no path permission is required
+image-slim-agent.exe capabilities --json
+
+# Read a plan request from stdin; CLI plan does not create a cross-process plan_id
+'{"request_id":"11111111-1111-4111-8111-111111111111","paths":["D:\\Pictures"]}' |
+  image-slim-agent.exe --allow-root D:\Pictures plan --request -
+
+# MCP stdio; status and cancel are only available in this persistent process
+image-slim-agent.exe --allow-root D:\Pictures mcp
+```
+
+MCP exposes `image_slim_capabilities`, `image_slim_plan`, `image_slim_compress`,
+`image_slim_status`, and `image_slim_cancel`. Reads must stay inside explicit `--allow-root`
+boundaries. Replacing originals additionally requires both process-level `--allow-overwrite` and request-level
+authorization. See [`docs/agent-protocol.zh-CN.md`](docs/agent-protocol.zh-CN.md) for the full protocol and
+Codex/Claude configuration examples.
 
 ## Supported Files
 
@@ -110,9 +153,9 @@ npm run config:check
 
 Push-Location src-tauri
 cargo fmt --check
-cargo clippy --all-targets --locked -- -D warnings
-cargo test --locked
-cargo check --all-targets --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo check --workspace --all-targets --locked
 Pop-Location
 ```
 
@@ -123,7 +166,7 @@ fallback, BLAKE3 source-change detection, and guarded atomic writes.
 
 ## Build Release Artifacts
 
-Build the Windows x64 NSIS installer and portable executable, including the license collection
+Build the Windows x64 NSIS installer, GUI executable, and Agent executable, including the license collection
 and checksums:
 
 ```powershell
@@ -131,7 +174,7 @@ npm run tauri:build
 ```
 
 Final artifacts are staged in the project-root `release/` directory with versioned names,
-license files, and `SHA256SUMS.txt`. To build only the portable executable:
+license files, and `SHA256SUMS.txt`. To build both standalone executables without the installer:
 
 ```powershell
 npm run tauri:build:no-bundle
@@ -140,11 +183,15 @@ npm run tauri:build:no-bundle
 `src-tauri/target/` remains a build cache and intermediate-output directory. Version `0.1.0`
 is not code-signed, so Windows SmartScreen may show an unknown-publisher warning.
 
+The static download site lives in `site/` and is deployed from `main` by the
+[Pages workflow](.github/workflows/pages.yml) to <https://t-meow.github.io/image-slim/>.
+
 ## Project Layout
 
 ```text
 src/                    Svelte UI, state, and Tauri IPC wrapper
-src-tauri/src/          Rust scanner, codecs, batch scheduler, and atomic output
+src-tauri/src/          Tauri commands, GUI state, and event adapter
+src-tauri/crates/       Shared core plus Agent/CLI/MCP crates
 src-tauri/capabilities/ Tauri capability boundaries
 scripts/                Configuration, version, and third-party license checks
 docs/                   Chinese implementation and build notes
@@ -155,6 +202,8 @@ See [`docs/codec-build.zh-CN.md`](docs/codec-build.zh-CN.md) for locked codec ve
 static-linking details, and reproducible build notes.
 The 12MP/48MP release performance measurements are recorded in
 [`docs/performance-baseline.zh-CN.md`](docs/performance-baseline.zh-CN.md).
+Agent permissions, JSON CLI, MCP tools, and host examples are documented in
+[`docs/agent-protocol.zh-CN.md`](docs/agent-protocol.zh-CN.md).
 
 ## Privacy and Networking
 

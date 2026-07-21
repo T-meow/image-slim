@@ -15,10 +15,11 @@
     "config:check": "node scripts/check-project-config.mjs",
     "release:check": "node scripts/stage-release.mjs --check",
     "licenses": "node scripts/generate-third-party-licenses.mjs",
+    "agent:build": "cargo build --manifest-path src-tauri/Cargo.toml -p image-slim-agent --release --locked && node scripts/prepare-agent-sidecar.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run licenses && tauri build && node scripts/stage-release.mjs",
-    "tauri:build:no-bundle": "npm run licenses && tauri build --no-bundle && node scripts/stage-release.mjs --no-bundle"
+    "tauri:build": "npm run agent:build && npm run licenses && tauri build --config src-tauri/tauri.agent.conf.json && node scripts/stage-release.mjs",
+    "tauri:build:no-bundle": "npm run agent:build && npm run licenses && tauri build --config src-tauri/tauri.agent.conf.json --no-bundle && node scripts/stage-release.mjs --no-bundle"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

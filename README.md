@@ -10,8 +10,26 @@
   <strong>简体中文</strong> · <a href="README.en.md">English</a>
 </p>
 
+<p align="center">
+  <a href="https://t-meow.github.io/image-slim/"><strong>官网与下载</strong></a> ·
+  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.1.0">Release v0.1.0</a> ·
+  <a href="https://github.com/T-meow/image-slim/issues">问题反馈</a>
+</p>
+
 image-slim 使用 Tauri 2、Svelte 5 与 Rust 构建，在本机压缩 PNG、JPEG 和 WebP，
 不上传图片，不需要账号，也不包含遥测。当前版本为 `0.1.0`，仅支持 Windows 10/11 x64。
+
+## 下载
+
+| 版本 | 适用场景 | 下载 |
+|---|---|---|
+| Windows 安装版 | 推荐；安装 GUI 与 Agent | [`image-slim_0.1.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe) |
+| GUI 便携版 | 免安装的单文件桌面程序 | [`image-slim_0.1.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe) |
+| Agent 独立版 | JSON CLI / MCP stdio 自动化 | [`image-slim-agent_0.1.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim-agent_0.1.0_x64.exe) |
+
+完整校验值见 [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/SHA256SUMS.txt)。
+`0.1.0` 尚未代码签名，Windows SmartScreen 可能显示未知发布者；可在下载后使用
+`Get-FileHash <文件路径> -Algorithm SHA256` 核对文件。
 
 ## 主要功能
 
@@ -22,6 +40,29 @@ image-slim 使用 Tauri 2、Svelte 5 与 Rust 构建，在本机压缩 PNG、JPE
 - 覆盖前检查源文件是否被外部修改，并使用同目录临时文件完成原子替换。
 - 默认清理隐私相关元数据并保留显示必需信息，也可切换为保留已支持的元数据。
 - 支持简体中文/English、跟随系统/明亮/深色主题，设置会保存在本机。
+- 安装版同时提供本地 `image-slim-agent.exe`，可通过 JSON CLI 或 MCP stdio 在明确允许目录内调用。
+
+## GUI、CLI 与 MCP
+
+桌面 GUI 面向日常批处理，提供拖放、队列、预览、失败重试和输出位置操作。Agent 使用同一个
+`image-slim-core`，适合脚本和 AI 工具自动化；它不启动 GUI、不监听网络端口，也不会返回图片字节。
+
+```powershell
+# 查询能力；不需要目录权限
+image-slim-agent.exe capabilities --json
+
+# 从 stdin 读取计划请求；CLI plan 不创建跨进程 plan_id
+'{"request_id":"11111111-1111-4111-8111-111111111111","paths":["D:\\Pictures"]}' |
+  image-slim-agent.exe --allow-root D:\Pictures plan --request -
+
+# MCP stdio；status 与 cancel 只在这个持久进程中提供
+image-slim-agent.exe --allow-root D:\Pictures mcp
+```
+
+MCP 暴露 `image_slim_capabilities`、`image_slim_plan`、`image_slim_compress`、
+`image_slim_status` 和 `image_slim_cancel`。读取必须位于显式 `--allow-root` 内；覆盖原图还需要
+进程参数 `--allow-overwrite` 与请求字段双重授权。完整协议、Codex 与 Claude 配置示例见
+[`docs/agent-protocol.zh-CN.md`](docs/agent-protocol.zh-CN.md)。
 
 ## 支持范围
 
@@ -105,9 +146,9 @@ npm run config:check
 
 Push-Location src-tauri
 cargo fmt --check
-cargo clippy --all-targets --locked -- -D warnings
-cargo test --locked
-cargo check --all-targets --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo check --workspace --all-targets --locked
 Pop-Location
 ```
 
@@ -123,8 +164,8 @@ Pop-Location
 npm run tauri:build
 ```
 
-最终产物统一放在项目根目录 `release/`，包括版本化安装包、便携 EXE、许可文件和
-`SHA256SUMS.txt`。只构建便携版时使用：
+最终产物统一放在项目根目录 `release/`，包括版本化安装包、GUI 便携 EXE、Agent EXE、许可文件和
+`SHA256SUMS.txt`。只构建两个独立 EXE、不生成安装包时使用：
 
 ```powershell
 npm run tauri:build:no-bundle
@@ -133,11 +174,15 @@ npm run tauri:build:no-bundle
 `src-tauri/target/` 仅作为编译缓存和中间目录。`0.1.0` 产物尚未代码签名，Windows
 SmartScreen 可能显示未知发布者提示。
 
+静态下载页位于 `site/`，合并到 `main` 后由 [Pages workflow](.github/workflows/pages.yml)
+自动部署到 <https://t-meow.github.io/image-slim/>。
+
 ## 项目结构
 
 ```text
 src/                    Svelte 界面、状态与 Tauri IPC 封装
-src-tauri/src/          Rust 扫描器、编解码器、批处理与原子输出
+src-tauri/src/          Tauri 命令、窗口状态与 GUI 事件 adapter
+src-tauri/crates/       共享 core 与 Agent/CLI/MCP crate
 src-tauri/capabilities/ Tauri 权限边界
 scripts/                配置、版本与第三方许可检查脚本
 docs/                   中文实施与构建说明
@@ -148,6 +193,8 @@ release/                本机构建的版本化发布产物（Git 忽略）
 [`docs/codec-build.zh-CN.md`](docs/codec-build.zh-CN.md)。
 12MP/48MP 三格式三档的 release 性能记录见
 [`docs/performance-baseline.zh-CN.md`](docs/performance-baseline.zh-CN.md)。
+Agent 的权限、JSON CLI、MCP 工具与宿主配置示例见
+[`docs/agent-protocol.zh-CN.md`](docs/agent-protocol.zh-CN.md)。
 
 ## 隐私与网络
 

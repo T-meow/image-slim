@@ -1,3 +1,4 @@
+use crate::EventSink;
 use crate::codecs;
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::limits;
@@ -14,7 +15,6 @@ use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
 const WORKER_COUNT: usize = 2;
@@ -29,6 +29,49 @@ pub struct JobRegistry {
 pub struct PreviewRegistry {
     active: Arc<Mutex<ActivePreview>>,
     execution: Arc<Mutex<()>>,
+}
+
+#[derive(Clone, Default)]
+pub struct BatchEngine {
+    registry: JobRegistry,
+    scheduler: WorkScheduler,
+    cache: PreviewCache,
+}
+
+impl BatchEngine {
+    pub fn start(
+        &self,
+        sink: Arc<dyn EventSink>,
+        request: BatchRequest,
+    ) -> AppResult<BatchStartResult> {
+        start(
+            sink,
+            self.registry.clone(),
+            self.scheduler.clone(),
+            self.cache.clone(),
+            request,
+        )
+    }
+
+    pub fn start_with_source_hashes(
+        &self,
+        sink: Arc<dyn EventSink>,
+        request: BatchRequest,
+        expected_source_hashes: HashMap<String, String>,
+    ) -> AppResult<BatchStartResult> {
+        start_with_source_hashes(
+            sink,
+            self.registry.clone(),
+            self.scheduler.clone(),
+            self.cache.clone(),
+            request,
+            expected_source_hashes,
+        )
+    }
+
+    pub fn cancel(&self, batch_id: &str) -> bool {
+        self.registry.cancel(batch_id)
+    }
 }
 
 impl PreviewRegistry {
@@ -110,6 +153,7 @@ struct BatchOptions {
     metadata_policy: MetadataPolicy,
     allow_conflicts: bool,
     expected_conflicts: HashMap<String, crate::model::SourceFingerprint>,
+    expected_source_hashes: HashMap<String, String>,
 }
 
 impl From<&BatchRequest> for BatchOptions {
@@ -121,16 +165,28 @@ impl From<&BatchRequest> for BatchOptions {
             metadata_policy: request.metadata_policy,
             allow_conflicts: request.allow_conflicts,
             expected_conflicts: HashMap::new(),
+            expected_source_hashes: HashMap::new(),
         }
     }
 }
 
 pub fn start(
-    app: AppHandle,
+    sink: Arc<dyn EventSink>,
     registry: JobRegistry,
     scheduler: WorkScheduler,
     cache: PreviewCache,
     request: BatchRequest,
+) -> AppResult<BatchStartResult> {
+    start_with_source_hashes(sink, registry, scheduler, cache, request, HashMap::new())
+}
+
+pub fn start_with_source_hashes(
+    sink: Arc<dyn EventSink>,
+    registry: JobRegistry,
+    scheduler: WorkScheduler,
+    cache: PreviewCache,
+    request: BatchRequest,
+    expected_source_hashes: HashMap<String, String>,
 ) -> AppResult<BatchStartResult> {
     if request.items.is_empty() {
         return Err(AppError::new(ErrorCode::Internal).detail("The batch is empty"));
@@ -147,6 +203,7 @@ pub fn start(
     }
 
     let mut options = BatchOptions::from(&request);
+    options.expected_source_hashes = expected_source_hashes;
     let targets = request
         .items
         .iter()
@@ -211,7 +268,7 @@ pub fn start(
     let options = Arc::new(options);
     std::thread::spawn(move || {
         run_batch(
-            app,
+            sink,
             registry,
             scheduler,
             cache,
@@ -232,7 +289,7 @@ pub fn start(
 
 #[allow(clippy::too_many_arguments)]
 fn run_batch(
-    app: AppHandle,
+    sink: Arc<dyn EventSink>,
     registry: JobRegistry,
     scheduler: WorkScheduler,
     cache: PreviewCache,
@@ -247,7 +304,7 @@ fn run_batch(
 
     std::thread::scope(|scope| {
         for _ in 0..WORKER_COUNT.min(items.len()) {
-            let app = app.clone();
+            let sink = sink.clone();
             let items = items.clone();
             let options = options.clone();
             let next_index = next_index.clone();
@@ -263,11 +320,11 @@ fn run_batch(
                         break;
                     };
                     if cancelled.load(Ordering::SeqCst) {
-                        emit_cancelled(&app, &batch_id, item, &counters);
+                        emit_cancelled(sink.as_ref(), &batch_id, item, &counters);
                         continue;
                     }
                     process_item(
-                        &app,
+                        sink.as_ref(),
                         &batch_id,
                         item,
                         &options,
@@ -293,12 +350,12 @@ fn run_batch(
     };
     drop(batch_guard);
     registry.remove(&batch_id);
-    let _ = app.emit("batch-summary", summary);
+    sink.batch_summary(summary);
 }
 
 #[allow(clippy::too_many_arguments)]
 fn process_item(
-    app: &AppHandle,
+    sink: &dyn EventSink,
     batch_id: &str,
     item: &InputItem,
     options: &BatchOptions,
@@ -307,18 +364,15 @@ fn process_item(
     scheduler: &WorkScheduler,
     cache: &PreviewCache,
 ) {
-    let _ = app.emit(
-        "batch-item",
-        ItemProgress {
-            batch_id: batch_id.into(),
-            item_id: item.id.clone(),
-            status: TaskStatus::Processing,
-            output_path: None,
-            output_size: None,
-            saved_bytes: 0,
-            error: None,
-        },
-    );
+    sink.item_progress(ItemProgress {
+        batch_id: batch_id.into(),
+        item_id: item.id.clone(),
+        status: TaskStatus::Processing,
+        output_path: None,
+        output_size: None,
+        saved_bytes: 0,
+        error: None,
+    });
 
     let outcome = process_item_inner(item, options, cancelled.clone(), scheduler, cache);
     let progress = match outcome {
@@ -366,7 +420,7 @@ fn process_item(
             }
         }
     };
-    let _ = app.emit("batch-item", progress);
+    sink.item_progress(progress);
 }
 
 fn process_item_inner(
@@ -384,6 +438,16 @@ fn process_item_inner(
     let source_path = Path::new(&item.source_path);
     let source = fs::read(source_path).map_err(|error| AppError::io(error, source_path))?;
     let source_hash = output::content_hash(&source);
+    if options
+        .expected_source_hashes
+        .get(&item.id)
+        .is_some_and(|expected| expected != &source_hash)
+    {
+        return Err(AppError::new(ErrorCode::SourceChanged)
+            .path(source_path)
+            .detail("Source content changed after planning")
+            .retryable(true));
+    }
     let encoded = if let Some(candidate) =
         cache.candidate(item, options.preset, options.metadata_policy, &source_hash)
     {
@@ -452,20 +516,22 @@ fn process_item_inner(
     ))
 }
 
-fn emit_cancelled(app: &AppHandle, batch_id: &str, item: &InputItem, counters: &Mutex<Counters>) {
+fn emit_cancelled(
+    sink: &dyn EventSink,
+    batch_id: &str,
+    item: &InputItem,
+    counters: &Mutex<Counters>,
+) {
     counters.lock().expect("batch counters poisoned").cancelled += 1;
-    let _ = app.emit(
-        "batch-item",
-        ItemProgress {
-            batch_id: batch_id.into(),
-            item_id: item.id.clone(),
-            status: TaskStatus::Cancelled,
-            output_path: None,
-            output_size: None,
-            saved_bytes: 0,
-            error: None,
-        },
-    );
+    sink.item_progress(ItemProgress {
+        batch_id: batch_id.into(),
+        item_id: item.id.clone(),
+        status: TaskStatus::Cancelled,
+        output_path: None,
+        output_size: None,
+        saved_bytes: 0,
+        error: None,
+    });
 }
 
 fn ensure_active(cancelled: &AtomicBool, item: &InputItem) -> AppResult<()> {
@@ -594,6 +660,7 @@ mod tests {
             metadata_policy: MetadataPolicy::Essential,
             allow_conflicts: false,
             expected_conflicts: HashMap::new(),
+            expected_source_hashes: HashMap::new(),
         };
         let scheduler = WorkScheduler::with_budget(8 * 1024 * 1024 * 1024);
         let (status, output_path, output_size) = process_item_inner(
@@ -640,6 +707,7 @@ mod tests {
             metadata_policy: MetadataPolicy::Essential,
             allow_conflicts: false,
             expected_conflicts: HashMap::new(),
+            expected_source_hashes: HashMap::new(),
         };
         let scheduler = WorkScheduler::with_budget(8 * 1024 * 1024 * 1024);
 
@@ -666,6 +734,7 @@ mod tests {
             metadata_policy: MetadataPolicy::Essential,
             allow_conflicts: true,
             expected_conflicts: HashMap::new(),
+            expected_source_hashes: HashMap::new(),
         };
 
         fs::write(&target, b"first").unwrap();

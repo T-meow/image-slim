@@ -40,9 +40,12 @@ function cargoSections() {
   const packages = new Map(metadata.packages.map((pkg) => [pkg.id, pkg]));
   const nodes = new Map(metadata.resolve.nodes.map((node) => [node.id, node]));
   const included = new Set();
-  const queue = [metadata.resolve.root];
+  const visited = new Set();
+  const queue = [...metadata.workspace_members];
   while (queue.length) {
     const id = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
     const node = nodes.get(id);
     if (!node) continue;
     for (const dependency of node.deps) {
@@ -55,7 +58,7 @@ function cargoSections() {
   }
   return [...included]
     .map((id) => packages.get(id))
-    .filter(Boolean)
+    .filter((pkg) => pkg?.source)
     .sort((left, right) => `${left.name}@${left.version}`.localeCompare(`${right.name}@${right.version}`))
     .map((pkg) => section(
       `Rust: ${pkg.name} ${pkg.version}`,
