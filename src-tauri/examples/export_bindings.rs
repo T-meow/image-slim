@@ -1,5 +1,5 @@
-use image_slim_lib::error::{AppError, ErrorCode};
-use image_slim_lib::model::{
+use image_slim_core::error::{AppError, ErrorCode};
+use image_slim_core::model::{
     AppCapabilities, BatchRequest, BatchStartResult, BatchStartStatus, BatchSummary,
     CompressionPreset, FormatCapability, ImageFormat, InputItem, InputLimits, ItemProgress,
     MetadataPolicy, OutputMode, PreviewRequest, PreviewResult, ScanEvent, ScanRequest, TaskStatus,

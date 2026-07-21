@@ -48,7 +48,7 @@ pub fn validate_item_mapping(item: &InputItem) -> Result<()> {
         return Err(anyhow!("Input relative path is unsafe"));
     }
     let expected = dunce::canonicalize(root.join(relative))?;
-    if !same_path(&canonical_source, &expected) || !same_path(&canonical_source, source) {
+    if !same_path(&canonical_source, &expected) {
         return Err(anyhow!(
             "Input root and relative path do not match the source file"
         ));

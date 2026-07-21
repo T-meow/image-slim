@@ -19,6 +19,7 @@ const readJson = (relativePath) => JSON.parse(
 );
 const packageJson = readJson('package.json');
 const tauriConfig = readJson('src-tauri/tauri.conf.json');
+const agentTauriConfig = readJson('src-tauri/tauri.agent.conf.json');
 const args = new Set(process.argv.slice(2));
 const allowedArgs = new Set(['--check', '--no-bundle']);
 
@@ -34,7 +35,13 @@ const releaseDirectory = path.join(projectRoot, 'release');
 const targetDirectory = path.join(projectRoot, 'src-tauri', 'target', 'release');
 const installerName = `${productName}_${version}_x64-setup.exe`;
 const portableName = `${productName}_${version}_x64-portable.exe`;
+const agentName = `${productName}-agent_${version}_x64.exe`;
 const licenseNames = ['LICENSE', 'THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_LICENSES.txt'];
+const maxSizes = new Map([
+  [portableName, 15 * 1024 * 1024],
+  [agentName, 15 * 1024 * 1024],
+  [installerName, 10 * 1024 * 1024]
+]);
 
 if (typeof productName !== 'string' || !productName) fail('Tauri productName is missing');
 if (typeof version !== 'string' || !version) fail('package.json version is missing');
@@ -44,10 +51,13 @@ if (tauriConfig.version !== '../package.json') {
 if (!tauriConfig.bundle?.targets?.includes('nsis')) {
   fail('Tauri bundle targets must include NSIS');
 }
+if (!agentTauriConfig.bundle?.externalBin?.includes('binaries/image-slim-agent')) {
+  fail('Tauri bundle must include the image-slim Agent sidecar');
+}
 for (const name of licenseNames) requireFile(path.join(projectRoot, name));
 
 if (checkOnly) {
-  console.log(`Release staging is configured for ${portableName} and ${installerName}.`);
+  console.log(`Release staging is configured for ${portableName}, ${agentName}, and ${installerName}.`);
   process.exit(0);
 }
 
@@ -55,6 +65,10 @@ const files = [
   {
     source: path.join(targetDirectory, `${productName}.exe`),
     destinationName: portableName
+  },
+  {
+    source: path.join(targetDirectory, `${productName}-agent.exe`),
+    destinationName: agentName
   },
   ...(!noBundle ? [{
     source: path.join(targetDirectory, 'bundle', 'nsis', installerName),
@@ -85,6 +99,10 @@ for (const file of files) {
     rmSync(temporary, { force: true });
   }
   const size = (await stat(destination)).size;
+  const maxSize = maxSizes.get(file.destinationName);
+  if (maxSize && size > maxSize) {
+    fail(`${file.destinationName} is ${size} bytes; limit is ${maxSize} bytes`);
+  }
   staged.push({ name: file.destinationName, path: destination, hash: sourceHash, size });
 }
 

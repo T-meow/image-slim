@@ -1,10 +1,13 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
 use std::path::Path;
 use ts_rs::TS;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize, TS,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
     NotFound,
@@ -26,6 +29,11 @@ pub enum ErrorCode {
     InsufficientMemory,
     BatchRunning,
     PreviewPaused,
+    InvalidRequest,
+    RootNotAllowed,
+    OverwriteNotAllowed,
+    PlanExpired,
+    JobNotFound,
     IoFailed,
     Internal,
 }
@@ -51,12 +59,17 @@ impl ErrorCode {
         Self::InsufficientMemory,
         Self::BatchRunning,
         Self::PreviewPaused,
+        Self::InvalidRequest,
+        Self::RootNotAllowed,
+        Self::OverwriteNotAllowed,
+        Self::PlanExpired,
+        Self::JobNotFound,
         Self::IoFailed,
         Self::Internal,
     ];
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, TS)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, Serialize, TS)]
 pub struct AppError {
     pub code: ErrorCode,
     pub params: BTreeMap<String, String>,

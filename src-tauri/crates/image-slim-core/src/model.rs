@@ -1,9 +1,12 @@
 use crate::error::AppError;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use ts_rs::TS;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, TS)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize, TS,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ImageFormat {
     Png,
@@ -35,7 +38,7 @@ impl fmt::Display for ImageFormat {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, TS)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum CompressionPreset {
     Lossless,
@@ -43,21 +46,21 @@ pub enum CompressionPreset {
     Strong,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum OutputMode {
     Subfolder,
     Overwrite,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, TS)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, PartialEq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum MetadataPolicy {
     Essential,
     Supported,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskStatus {
     Ready,
@@ -68,14 +71,14 @@ pub enum TaskStatus {
     Cancelled,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, TS)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum BatchStartStatus {
     Conflicts,
     Started,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, TS)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, Serialize, TS)]
 pub struct InputItem {
     pub id: String,
     pub source_path: String,
@@ -91,7 +94,7 @@ pub struct InputItem {
     pub modified_ms: u64,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, TS)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, Serialize, TS)]
 pub struct ScanRequest {
     pub scan_id: String,
     pub paths: Vec<String>,
@@ -100,7 +103,7 @@ pub struct ScanRequest {
     pub remaining_capacity: usize,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ScanEvent {
     Items {
@@ -126,7 +129,7 @@ pub enum ScanEvent {
     },
 }
 
-#[derive(Clone, Debug, Deserialize, TS)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, TS)]
 pub struct PreviewRequest {
     pub request_id: String,
     pub item: InputItem,
@@ -134,7 +137,7 @@ pub struct PreviewRequest {
     pub metadata_policy: MetadataPolicy,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct PreviewResult {
     pub source_preview_path: String,
     pub candidate_preview_path: String,
@@ -148,7 +151,7 @@ pub struct PreviewResult {
     pub height: u32,
 }
 
-#[derive(Clone, Debug, Deserialize, TS)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, TS)]
 pub struct BatchRequest {
     pub items: Vec<InputItem>,
     pub preset: CompressionPreset,
@@ -159,14 +162,14 @@ pub struct BatchRequest {
     pub allow_conflicts: bool,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct BatchStartResult {
     pub status: BatchStartStatus,
     pub batch_id: Option<String>,
     pub conflict_count: usize,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct ItemProgress {
     pub batch_id: String,
     pub item_id: String,
@@ -179,7 +182,7 @@ pub struct ItemProgress {
     pub error: Option<AppError>,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct BatchSummary {
     pub batch_id: String,
     pub completed: usize,
@@ -192,19 +195,19 @@ pub struct BatchSummary {
     pub output_bytes: u64,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, JsonSchema, PartialEq)]
 pub struct SourceFingerprint {
     pub size: u64,
     pub modified_ms: u64,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct FormatCapability {
     pub format: ImageFormat,
     pub extensions: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct InputLimits {
     #[ts(type = "number")]
     pub max_file_bytes: u64,
@@ -214,7 +217,7 @@ pub struct InputLimits {
     pub max_queue_items: usize,
 }
 
-#[derive(Clone, Debug, Serialize, TS)]
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
 pub struct AppCapabilities {
     pub formats: Vec<FormatCapability>,
     pub presets: Vec<CompressionPreset>,

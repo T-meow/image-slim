@@ -1,25 +1,35 @@
-mod codecs;
-pub mod error;
-mod jobs;
-mod limits;
-mod metadata;
-pub mod model;
-mod output;
-mod preview;
-mod scanner;
-mod scheduler;
-
-use crate::error::{AppError, AppResult, ErrorCode};
-use crate::jobs::{JobRegistry, PreviewRegistry};
-use crate::model::{
-    AppCapabilities, BatchRequest, BatchStartResult, PreviewRequest, PreviewResult, ScanEvent,
-    ScanRequest,
+use image_slim_core::EventSink;
+use image_slim_core::batch::{self, JobRegistry, PreviewRegistry};
+use image_slim_core::error::{AppError, AppResult, ErrorCode};
+use image_slim_core::model::{
+    AppCapabilities, BatchRequest, BatchStartResult, BatchSummary, ItemProgress, PreviewRequest,
+    PreviewResult, ScanEvent, ScanRequest,
 };
-use crate::preview::PreviewCache;
-use crate::scanner::ScanRegistry;
-use crate::scheduler::WorkScheduler;
+use image_slim_core::preview::{self, PreviewCache};
+use image_slim_core::scanner::{self, ScanRegistry};
+use image_slim_core::scheduler::WorkScheduler;
 use std::path::Path;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
+
+#[derive(Clone)]
+struct TauriEventSink {
+    app: AppHandle,
+}
+
+impl EventSink for TauriEventSink {
+    fn scan_event(&self, event: ScanEvent) {
+        let _ = self.app.emit("scan-event", event);
+    }
+
+    fn item_progress(&self, progress: ItemProgress) {
+        let _ = self.app.emit("batch-item", progress);
+    }
+
+    fn batch_summary(&self, summary: BatchSummary) {
+        let _ = self.app.emit("batch-summary", summary);
+    }
+}
 
 #[tauri::command]
 fn start_scan(
@@ -33,28 +43,23 @@ fn start_scan(
     let registry = registry.inner().clone();
     let scan_id = request.scan_id.clone();
     let cancelled = registry.begin(scan_id.clone());
+    let sink = TauriEventSink { app };
     std::thread::spawn(move || {
         let result = scanner::scan_stream(request, cancelled.clone(), |event| {
-            let _ = app.emit("scan-event", event);
+            sink.scan_event(event);
         });
         if let Err(error) = result {
-            let _ = app.emit(
-                "scan-event",
-                ScanEvent::Issues {
-                    scan_id: scan_id.clone(),
-                    issues: vec![error],
-                },
-            );
-            let _ = app.emit(
-                "scan-event",
-                ScanEvent::Finished {
-                    scan_id: scan_id.clone(),
-                    accepted: 0,
-                    issue_count: 1,
-                    cancelled: cancelled.load(std::sync::atomic::Ordering::SeqCst),
-                    limit_reached: false,
-                },
-            );
+            sink.scan_event(ScanEvent::Issues {
+                scan_id: scan_id.clone(),
+                issues: vec![error],
+            });
+            sink.scan_event(ScanEvent::Finished {
+                scan_id: scan_id.clone(),
+                accepted: 0,
+                issue_count: 1,
+                cancelled: cancelled.load(std::sync::atomic::Ordering::SeqCst),
+                limit_reached: false,
+            });
         }
         registry.finish(&scan_id);
     });
@@ -110,8 +115,8 @@ fn start_batch(
     request: BatchRequest,
 ) -> AppResult<BatchStartResult> {
     preview_registry.cancel();
-    jobs::start(
-        app,
+    batch::start(
+        Arc::new(TauriEventSink { app }),
         registry.inner().clone(),
         scheduler.inner().clone(),
         cache.inner().clone(),
@@ -126,7 +131,7 @@ fn cancel_batch(registry: State<'_, JobRegistry>, batch_id: String) -> bool {
 
 #[tauri::command]
 fn get_capabilities() -> AppCapabilities {
-    limits::capabilities()
+    image_slim_core::capabilities()
 }
 
 #[tauri::command]

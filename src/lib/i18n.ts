@@ -107,6 +107,11 @@ const zh = {
     insufficient_memory: '当前可用内存不足以安全处理此图片',
     batch_running: '已有批处理正在运行',
     preview_paused: '批处理期间暂停生成预览',
+    invalid_request: 'Agent 请求参数无效',
+    root_not_allowed: '此路径不在 Agent 允许的根目录中',
+    overwrite_not_allowed: 'Agent 未获得覆盖原文件的启动授权',
+    plan_expired: 'Agent 压缩计划已过期',
+    job_not_found: 'Agent 任务不存在或已过期',
     io_failed: '文件读写失败',
     internal: '应用内部错误'
   } satisfies Record<ErrorCode, string>
@@ -227,6 +232,11 @@ const en: Messages = {
     insufficient_memory: 'There is not enough available memory to process this image safely',
     batch_running: 'Another batch is already running',
     preview_paused: 'Preview generation is paused during a batch',
+    invalid_request: 'The Agent request is invalid',
+    root_not_allowed: 'The path is outside the Agent allowed roots',
+    overwrite_not_allowed: 'The Agent was not started with overwrite permission',
+    plan_expired: 'The Agent compression plan expired',
+    job_not_found: 'The Agent job does not exist or expired',
     io_failed: 'A file read or write failed',
     internal: 'Internal application error'
   }
