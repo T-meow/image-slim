@@ -67,6 +67,8 @@ pub struct CompressRequest {
     pub paths: Option<Vec<String>>,
     #[serde(default = "default_preset")]
     pub preset: CompressionPreset,
+    #[serde(default = "image_slim_core::model::default_audio_bitrate")]
+    pub audio_bitrate_kbps: u32,
     #[serde(default = "default_output_mode")]
     pub output_mode: OutputMode,
     #[serde(default = "default_output_subfolder")]

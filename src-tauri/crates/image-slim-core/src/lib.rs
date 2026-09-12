@@ -1,4 +1,5 @@
 pub mod access;
+pub mod audio;
 pub mod batch;
 mod codecs;
 pub mod error;

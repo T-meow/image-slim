@@ -30,6 +30,7 @@ pub fn compress(
         }
         ImageFormat::Jpeg => jpeg::compress(source, preset, metadata_policy)?,
         ImageFormat::Webp => webp::compress(source, preset, metadata_policy)?,
+        _ => return Err(anyhow!("Audio requires the MP3 encoder")),
     };
     metadata::verify_supported_container(&encoded, format)?;
     if preset == CompressionPreset::Lossless {
@@ -89,6 +90,7 @@ fn validate_lossless_pixels(
         ImageFormat::Png => before.to_rgba16().into_raw() == after.to_rgba16().into_raw(),
         ImageFormat::Jpeg => before.to_rgba8().into_raw() == after.to_rgba8().into_raw(),
         ImageFormat::Webp => unreachable!("WebP is verified through libwebp above"),
+        _ => return Err(anyhow!("Audio has no image pixels")),
     };
     if !identical {
         return Err(anyhow!("Lossless verification found changed pixel values"));

@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="image-slim 是完全离线的 Windows 批量图片压缩器，支持 PNG、JPEG、WebP，并提供本地 JSON CLI 与 MCP Agent。"
+      content="image-slim 是完全离线的 Windows 批量图片与音频压缩器，支持 PNG、JPEG、WebP 和音频转 MP3，并提供本地 JSON CLI 与 MCP Agent。"
     />
     <meta name="theme-color" content="#176b68" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="image-slim - 离线批量图片压缩器" />
+    <meta property="og:title" content="image-slim - 离线批量图片与音频压缩器" />
     <meta
       property="og:description"
-      content="图片不上传，支持安装版、便携版和可由 AI 工具调用的本地 Agent。"
+      content="图片与音频不上传，支持安装版、便携版和可由 AI 工具调用的本地 Agent。"
     />
     <meta property="og:url" content="https://t-meow.github.io/image-slim/" />
     <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
-    <title>image-slim - 离线批量图片压缩器</title>
+    <title>image-slim - 离线批量图片与音频压缩器</title>
   </head>
   <body>
     <header class="site-header">
@@ -37,24 +37,24 @@
       <section class="intro" aria-labelledby="page-title">
         <div class="intro-copy">
           <div class="release-line">
-            <span class="version">v0.1.0</span>
+            <span class="version">v0.2.0</span>
             <span>Windows 10/11 x64</span>
             <span>完全离线</span>
           </div>
           <h1 id="page-title">image-slim</h1>
           <p class="lede">
-            在本机批量压缩 PNG、JPEG 和 WebP。图片不上传，不需要账号，也不包含遥测。
+            在本机批量压缩 PNG、JPEG、WebP 图片，将 MP3、WAV、FLAC、M4A、Ogg 音频压缩为 MP3。文件不上传，不需要账号，也不包含遥测。
           </p>
           <div class="primary-actions">
             <a
               class="button button-primary"
-              href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe"
+              href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-setup.exe"
             >
-              下载安装版 <span>4.35 MiB</span>
+              下载安装版 <span>5.30 MiB</span>
             </a>
             <a
               class="button button-secondary"
-              href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe"
+              href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-portable.exe"
             >
               获取便携版
             </a>
@@ -117,45 +117,45 @@
 
       <section class="feature-band" aria-label="主要能力">
         <div><strong>批量与递归扫描</strong><span>文件、文件夹和混合输入</span></div>
-        <div><strong>三种压缩档位</strong><span>无损、均衡、强力</span></div>
+        <div><strong>图片三档压缩</strong><span>无损、均衡、强力</span></div>
         <div><strong>安全输出</strong><span>源变更检测与原子替换</span></div>
-        <div><strong>隐私默认值</strong><span>清理敏感元数据</span></div>
+        <div><strong>音频转 MP3</strong><span>192 / 128 / 64 kbps，保留源文件</span></div>
       </section>
 
       <section class="downloads section" id="downloads" aria-labelledby="downloads-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Release v0.1.0</p>
+            <p class="eyebrow">Release v0.2.0</p>
             <h2 id="downloads-title">选择下载</h2>
           </div>
-          <a href="https://github.com/T-meow/image-slim/releases/tag/v0.1.0">查看发行说明</a>
+          <a href="https://github.com/T-meow/image-slim/releases/tag/v0.2.0">查看发行说明</a>
         </div>
         <div class="download-grid">
           <article class="download-card recommended">
             <span class="card-kicker">推荐</span>
             <h3>Windows 安装版</h3>
             <p>NSIS 安装包，同时安装图形界面和 Agent，不创建自动启动项。</p>
-            <dl><dt>文件</dt><dd>image-slim_0.1.0_x64-setup.exe</dd><dt>大小</dt><dd>4.35 MiB</dd></dl>
-            <a href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe">下载安装包</a>
+            <dl><dt>文件</dt><dd>image-slim_0.2.0_x64-setup.exe</dd><dt>大小</dt><dd>5.30 MiB</dd></dl>
+            <a href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-setup.exe">下载安装包</a>
           </article>
           <article class="download-card">
             <span class="card-kicker">免安装</span>
             <h3>GUI 便携版</h3>
             <p>单个图形界面程序，适合临时使用或自行管理应用目录。</p>
-            <dl><dt>文件</dt><dd>image-slim_0.1.0_x64-portable.exe</dd><dt>大小</dt><dd>9.46 MiB</dd></dl>
-            <a href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe">下载便携版</a>
+            <dl><dt>文件</dt><dd>image-slim_0.2.0_x64-portable.exe</dd><dt>大小</dt><dd>11.19 MiB</dd></dl>
+            <a href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-portable.exe">下载便携版</a>
           </article>
           <article class="download-card">
             <span class="card-kicker">自动化</span>
             <h3>Agent 独立版</h3>
             <p>JSON CLI 与 MCP stdio 服务，供脚本、Codex 或 Claude 等本地主机调用。</p>
-            <dl><dt>文件</dt><dd>image-slim-agent_0.1.0_x64.exe</dd><dt>大小</dt><dd>5.98 MiB</dd></dl>
-            <a href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim-agent_0.1.0_x64.exe">下载 Agent</a>
+            <dl><dt>文件</dt><dd>image-slim-agent_0.2.0_x64.exe</dd><dt>大小</dt><dd>7.68 MiB</dd></dl>
+            <a href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim-agent_0.2.0_x64.exe">下载 Agent</a>
           </article>
         </div>
         <div class="checksum-line">
           <span>核对下载完整性</span>
-          <a href="https://github.com/T-meow/image-slim/releases/download/v0.1.0/SHA256SUMS.txt">SHA256SUMS.txt</a>
+          <a href="https://github.com/T-meow/image-slim/releases/download/v0.2.0/SHA256SUMS.txt">SHA256SUMS.txt</a>
           <span class="checksum-note">发布页附带完整 SHA-256 清单</span>
         </div>
       </section>
@@ -170,7 +170,7 @@
           </p>
           <div class="agent-links">
             <a href="https://github.com/T-meow/image-slim/blob/main/docs/agent-protocol.zh-CN.md">阅读 Agent 协议</a>
-            <a href="https://github.com/T-meow/image-slim#agent--cli--mcp">查看 CLI 示例</a>
+            <a href="https://github.com/T-meow/image-slim#gui-cli-与-mcp">查看 CLI 示例</a>
           </div>
         </div>
         <pre aria-label="Agent capabilities 命令示例"><code><span class="prompt">PS&gt;</span> image-slim-agent.exe capabilities --json
@@ -178,7 +178,13 @@
   <span class="key">"ok"</span>: true,
   <span class="key">"result"</span>: {
     <span class="key">"agent_protocol_version"</span>: 1,
-    <span class="key">"formats"</span>: [<span class="string">"png"</span>, <span class="string">"jpeg"</span>, <span class="string">"webp"</span>]
+    <span class="key">"core"</span>: {
+      <span class="key">"audio"</span>: {
+        <span class="key">"output_format"</span>: <span class="string">"mp3"</span>,
+        <span class="key">"bitrates_kbps"</span>: [192, 128, 64],
+        <span class="key">"max_duration_seconds"</span>: 21600
+      }
+    }
   }
 }</code></pre>
       </section>
@@ -191,8 +197,8 @@
           </div>
         </div>
         <ol class="safety-list">
-          <li><span>01</span><div><strong>候选结果重新解码</strong><p>验证格式、尺寸和完整性；无损档额外比较完整像素。</p></div></li>
-          <li><span>02</span><div><strong>没有收益就保留原图</strong><p>候选文件不更小时，不用更大的结果替换输入。</p></div></li>
+          <li><span>01</span><div><strong>候选结果重新解码</strong><p>图片验证尺寸和完整性，无损档额外比较像素；音频核对时长和声道。</p></div></li>
+          <li><span>02</span><div><strong>没有收益就保留源文件</strong><p>候选文件不更小时保留输入。音频始终输出到子文件夹，不覆盖源文件。</p></div></li>
           <li><span>03</span><div><strong>写入前再次检查源文件</strong><p>核对路径、大小、时间与 BLAKE3 内容哈希，拒绝竞争修改。</p></div></li>
           <li><span>04</span><div><strong>同目录原子替换</strong><p>临时文件同步落盘后再替换，取消时保护原始文件。</p></div></li>
         </ol>
@@ -201,7 +207,7 @@
 
     <footer>
       <div class="footer-brand"><img src="assets/icon.svg" alt="" width="28" height="28" /><strong>image-slim</strong></div>
-      <p>GPL-3.0-or-later · Windows 10/11 x64 · 图片始终留在本机</p>
+      <p>GPL-3.0-or-later · Windows 10/11 x64 · 图片与音频始终留在本机</p>
       <div><a href="https://github.com/T-meow/image-slim">源代码</a><a href="https://github.com/T-meow/image-slim/issues">问题反馈</a></div>
     </footer>
   </body>

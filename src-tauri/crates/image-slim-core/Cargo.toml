@@ -1,7 +1,7 @@
 [package]
 name = "image-slim-core"
-version = "0.1.0"
-description = "Shared image scanning and compression engine for image-slim"
+version = "0.2.0"
+description = "Shared image and audio scanning and compression engine for image-slim"
 edition = "2024"
 rust-version = "1.93"
 license = "GPL-3.0-or-later"
@@ -16,11 +16,13 @@ img-parts = "0.4.0"
 libc = "0.2"
 mozjpeg = { version = "0.10.13", default-features = false }
 mozjpeg-sys = { version = "2.2.3", default-features = false, features = ["jpegtran"] }
+mp3lame-encoder = { version = "=0.2.5", features = ["std"] }
 oxipng = { version = "10.1.1", default-features = false, features = ["parallel", "zopfli"] }
 png = "0.18.1"
 schemars = "1.2.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+symphonia = { version = "=0.5.5", default-features = false, features = ["aac", "alac", "flac", "mp3", "pcm", "vorbis", "isomp4", "ogg", "wav"] }
 ts-rs = { version = "=12.0.1", features = ["serde-compat"] }
 uuid = { version = "1", features = ["v4"] }
 walkdir = "2.5"

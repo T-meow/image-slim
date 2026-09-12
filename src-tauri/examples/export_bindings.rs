@@ -1,8 +1,9 @@
 use image_slim_core::error::{AppError, ErrorCode};
 use image_slim_core::model::{
-    AppCapabilities, BatchRequest, BatchStartResult, BatchStartStatus, BatchSummary,
-    CompressionPreset, FormatCapability, ImageFormat, InputItem, InputLimits, ItemProgress,
-    MetadataPolicy, OutputMode, PreviewRequest, PreviewResult, ScanEvent, ScanRequest, TaskStatus,
+    AppCapabilities, AudioCapability, AudioInfo, BatchRequest, BatchStartResult, BatchStartStatus,
+    BatchSummary, CompressionPreset, FormatCapability, ImageFormat, InputItem, InputLimits,
+    ItemProgress, MetadataPolicy, OutputMode, PreviewRequest, PreviewResult, ScanEvent,
+    ScanRequest, TaskStatus,
 };
 use std::env;
 use std::fs;
@@ -18,6 +19,8 @@ fn main() {
         ErrorCode::decl(&config),
         AppError::decl(&config),
         ImageFormat::decl(&config),
+        AudioInfo::decl(&config),
+        AudioCapability::decl(&config),
         CompressionPreset::decl(&config),
         OutputMode::decl(&config),
         MetadataPolicy::decl(&config),

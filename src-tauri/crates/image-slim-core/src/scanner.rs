@@ -1,6 +1,6 @@
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::limits;
-use crate::model::{ImageFormat, InputItem, ScanEvent, ScanRequest};
+use crate::model::{AudioInfo, ImageFormat, InputItem, ScanEvent, ScanRequest};
 use anyhow::{Context, Result, anyhow};
 use image::ImageReader;
 use std::collections::{HashMap, HashSet, hash_map::DefaultHasher};
@@ -285,8 +285,8 @@ fn inspect_input(path: &Path, root: &Path, direct: bool) -> AppResult<Option<Inp
     };
     let metadata = fs::metadata(path).map_err(|error| AppError::io(error, path))?;
     limits::validate_file_size(path, metadata.len())?;
-    let (magic_format, width, height) = inspect_file(path)
-        .map_err(|error| AppError::operation(ErrorCode::InvalidImage, error, path))?;
+    let (magic_format, width, height, audio) = inspect_file(path)
+        .map_err(|error| AppError::operation(input_error(extension_format), error, path))?;
     if extension_format != magic_format {
         return Err(AppError::new(ErrorCode::FormatMismatch).path(path));
     }
@@ -317,6 +317,7 @@ fn inspect_input(path: &Path, root: &Path, direct: bool) -> AppResult<Option<Inp
         format: magic_format,
         width,
         height,
+        audio,
         original_size: metadata.len(),
         modified_ms: modified_ms(metadata.modified().ok()),
     }))
@@ -334,8 +335,8 @@ pub fn validate_runtime_item(item: &InputItem) -> AppResult<()> {
     limits::validate_file_size(path, metadata.len())?;
     let extension_format = format_from_extension(path)
         .ok_or_else(|| AppError::new(ErrorCode::UnsupportedExtension).path(path))?;
-    let (actual_format, width, height) = inspect_file(path)
-        .map_err(|error| AppError::operation(ErrorCode::InvalidImage, error, path))?;
+    let (actual_format, width, height, audio) = inspect_file(path)
+        .map_err(|error| AppError::operation(input_error(extension_format), error, path))?;
     if extension_format != actual_format || item.format != actual_format {
         return Err(AppError::new(ErrorCode::FormatMismatch).path(path));
     }
@@ -345,6 +346,7 @@ pub fn validate_runtime_item(item: &InputItem) -> AppResult<()> {
         || current_modified != item.modified_ms
         || width != item.width
         || height != item.height
+        || audio != item.audio
     {
         return Err(AppError::new(ErrorCode::SourceChanged)
             .path(path)
@@ -404,14 +406,24 @@ fn include_entry(entry: &DirEntry, output_root: &Path) -> bool {
     !entry.file_type().is_symlink() && !same_path(entry.path(), output_root)
 }
 
-fn inspect_file(path: &Path) -> Result<(ImageFormat, u32, u32)> {
+fn input_error(format: ImageFormat) -> ErrorCode {
+    if format.is_audio() {
+        ErrorCode::InvalidAudio
+    } else {
+        ErrorCode::InvalidImage
+    }
+}
+
+fn inspect_file(path: &Path) -> Result<(ImageFormat, u32, u32, Option<AudioInfo>)> {
     let mut header = Vec::new();
     File::open(path)
         .with_context(|| format!("Failed to open {}", path.display()))?
         .take(HEADER_LIMIT)
         .read_to_end(&mut header)?;
-    let format =
-        format_from_magic(&header).ok_or_else(|| anyhow!("Unsupported image signature"))?;
+    let format = format_from_magic(&header).ok_or_else(|| anyhow!("Unsupported file signature"))?;
+    if format.is_audio() {
+        return Ok((format, 0, 0, Some(crate::audio::inspect(path, format)?)));
+    }
 
     match format {
         ImageFormat::Png if animated_png(&header) => {
@@ -436,7 +448,7 @@ fn inspect_file(path: &Path) -> Result<(ImageFormat, u32, u32)> {
             .with_guessed_format()?
             .into_dimensions()?
     };
-    Ok((format, width, height))
+    Ok((format, width, height, None))
 }
 
 fn webp_dimensions(data: &[u8]) -> Result<(u32, u32)> {
@@ -500,6 +512,11 @@ pub fn format_from_extension(path: &Path) -> Option<ImageFormat> {
         "png" => Some(ImageFormat::Png),
         "jpg" | "jpeg" => Some(ImageFormat::Jpeg),
         "webp" => Some(ImageFormat::Webp),
+        "mp3" => Some(ImageFormat::Mp3),
+        "wav" => Some(ImageFormat::Wav),
+        "flac" => Some(ImageFormat::Flac),
+        "m4a" => Some(ImageFormat::M4a),
+        "ogg" => Some(ImageFormat::Ogg),
         _ => None,
     }
 }
@@ -511,6 +528,22 @@ pub fn format_from_magic(data: &[u8]) -> Option<ImageFormat> {
         Some(ImageFormat::Jpeg)
     } else if data.len() >= 12 && &data[..4] == b"RIFF" && &data[8..12] == b"WEBP" {
         Some(ImageFormat::Webp)
+    } else if data.len() >= 12 && &data[..4] == b"RIFF" && &data[8..12] == b"WAVE" {
+        Some(ImageFormat::Wav)
+    } else if data.starts_with(b"fLaC") {
+        Some(ImageFormat::Flac)
+    } else if data.starts_with(b"OggS") {
+        Some(ImageFormat::Ogg)
+    } else if data.len() >= 12 && &data[4..8] == b"ftyp" {
+        Some(ImageFormat::M4a)
+    } else if data.starts_with(b"ID3")
+        || (data.len() >= 4
+            && data[0] == 0xff
+            && data[1] & 0xe6 == 0xe2
+            && data[2] & 0xf0 != 0xf0
+            && data[2] & 0x0c != 0x0c)
+    {
+        Some(ImageFormat::Mp3)
     } else {
         None
     }

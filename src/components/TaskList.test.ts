@@ -58,7 +58,7 @@ describe('TaskList', () => {
     await tick();
 
     expect(document.querySelector('.task-scroll.empty')).not.toBeNull();
-    expect(document.body.textContent).toContain('Drop PNG / JPEG / WEBP images or folders');
+    expect(document.body.textContent).toContain('Drop images, audio, or folders');
     unmount(app);
   });
 

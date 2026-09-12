@@ -4,7 +4,7 @@
 
 <h1 align="center">image-slim</h1>
 
-<p align="center">A fully offline batch image compressor for Windows.</p>
+<p align="center">A fully offline batch image and audio compressor for Windows.</p>
 
 <p align="center">
   <a href="README.md">简体中文</a> · <strong>English</strong>
@@ -12,30 +12,31 @@
 
 <p align="center">
   <a href="https://t-meow.github.io/image-slim/"><strong>Website & downloads</strong></a> ·
-  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.1.0">Release v0.1.0</a> ·
+  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.2.0">Release v0.2.0</a> ·
   <a href="https://github.com/T-meow/image-slim/issues">Issues</a>
 </p>
 
 image-slim is built with Tauri 2, Svelte 5, and Rust. It compresses PNG, JPEG,
-and WebP files locally without uploads, accounts, or telemetry. The current version
-is `0.1.0` and supports Windows 10/11 x64 only.
+and WebP images and converts supported audio to MP3 locally, without uploads, accounts, or telemetry. The current version
+is `0.2.0` and supports Windows 10/11 x64 only.
 
 ## Download
 
 | Edition | Use case | Download |
 |---|---|---|
-| Windows installer | Recommended; installs the GUI and Agent | [`image-slim_0.1.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe) |
-| Portable GUI | Single-file desktop app, no install required | [`image-slim_0.1.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe) |
-| Standalone Agent | JSON CLI / MCP stdio automation | [`image-slim-agent_0.1.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim-agent_0.1.0_x64.exe) |
+| Windows installer | Recommended; installs the GUI and Agent | [`image-slim_0.2.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-setup.exe) |
+| Portable GUI | Single-file desktop app, no install required | [`image-slim_0.2.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-portable.exe) |
+| Standalone Agent | JSON CLI / MCP stdio automation | [`image-slim-agent_0.2.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim-agent_0.2.0_x64.exe) |
 
-See [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/SHA256SUMS.txt)
-for complete checksums. Version `0.1.0` is not code-signed, so Windows SmartScreen may show an
+See [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/SHA256SUMS.txt)
+for complete checksums. Version `0.2.0` is not code-signed, so Windows SmartScreen may show an
 unknown-publisher warning. Verify a download with `Get-FileHash <path> -Algorithm SHA256`.
 
 ## Features
 
 - Drop multiple files, folders, or mixed inputs; folders are scanned recursively while preserving relative paths.
 - Choose from Lossless, Balanced, and Strong presets; the original is kept when a candidate is not smaller.
+- Compress MP3, WAV, FLAC, M4A, and Ogg audio to MP3 at 192/128/64 kbps (default 128), with source preservation and original/result playback.
 - Process batches with retries, cancellation, output statistics, and a before/after comparison slider.
 - Write to an editable `compressed` subfolder or replace originals after one batch-level confirmation.
 - Detect external source changes before replacement and atomically replace from a same-directory temporary file.
@@ -81,12 +82,12 @@ other queued files:
 
 - Maximum file size: `512 MiB` (`536,870,912` bytes).
 - Maximum image size: `100,000,000` pixels and `65,535` pixels on either dimension.
-- Maximum queue size: `10,000` images; remaining directories are not traversed after the limit.
+- Maximum queue size: `10,000` files; remaining directories are not traversed after the limit.
 - Peak memory is estimated per format while reserving memory for Windows and the WebView. A
   format-valid image is still rejected clearly when current available memory is insufficient.
 
-The first release does not include AVIF, format conversion, resizing, GIF, target-size
-compression, or editing.
+This version does not include AVIF, image format conversion, resizing, GIF, target-size
+compression, or image editing. See Audio Compression below for supported audio.
 
 ## Presets
 
@@ -117,9 +118,33 @@ Replacement is protected by the following sequence:
 
 1. Select images or folders from the toolbar, or drop them onto the window.
 2. Choose a compression preset, output mode, and metadata policy.
-3. Select an item to inspect its preview, synchronized zoom, and comparison slider.
+3. Select an item to preview the current settings. Drag the divider on the image, use its arrow keys, or move the comparison slider. Fit-relative zoom ranges from `0.5×` to `3×`; previews have a maximum edge of `2048` pixels and are not source-pixel views.
 4. Select **Compress**. Existing outputs and source replacement require confirmation first.
-5. Open completed output locations from the queue, or retry failed items individually.
+5. Search or filter the queue, sort by size or savings, inspect the result summary, retry failed items, or clear completed entries. Each finished row can reveal its output or be processed again.
+
+Changing settings keeps existing results and applies to the next run. Processing again first rescans the file; failed or cancelled scans and declined replacement confirmations retain the previous row and results. After replacing an original, the preview shows the saved file instead of generating another comparison from a stale source snapshot.
+
+## Audio Compression
+
+Starting with `v0.2.0`, audio and images can share the same queue. The installer,
+portable GUI, and Agent all include audio compression.
+
+Inputs: MP3, PCM WAV, FLAC, M4A with AAC-LC/ALAC, and Ogg Vorbis. Only mono/stereo,
+8–192 kHz audio is supported, up to six hours and 512 MiB per file. DRM and Opus are unsupported.
+
+- Output is **MP3**, with independent **192 / 128 / 64 kbps** settings (default 128).
+  Image lossless presets do not apply to audio. The encoder may adjust the output sample rate.
+- Audio always goes to the selected subfolder and preserves its source, including when
+  “Replace images” is selected. For example, `song.wav` becomes `compressed/song.wav.mp3`;
+  MP3 inputs keep their names. Conflicting output paths are rejected before writing.
+- Decoding and encoding use bounded packets. The candidate MP3 is decoded again to verify
+  duration and channels. If it is not smaller, no new file is written. Audio tags and cover
+  art are removed; the metadata setting applies to images.
+- Select audio to view its properties and play the original and saved result. Some input
+  codecs may not play in the built-in player but can still be converted. Playback pauses
+  during processing. Cancellation leaves no partial output.
+- The codecs are built in; no runtime FFmpeg installation or downloads are needed.
+  Agent `compress` requests accept `audio_bitrate_kbps`; `core.audio` describes output capabilities.
 
 ## Run From Source
 
@@ -180,7 +205,7 @@ license files, and `SHA256SUMS.txt`. To build both standalone executables withou
 npm run tauri:build:no-bundle
 ```
 
-`src-tauri/target/` remains a build cache and intermediate-output directory. Version `0.1.0`
+`src-tauri/target/` remains a build cache and intermediate-output directory. Version `0.2.0`
 is not code-signed, so Windows SmartScreen may show an unknown-publisher warning.
 
 The static download site lives in `site/` and is deployed from `main` by the

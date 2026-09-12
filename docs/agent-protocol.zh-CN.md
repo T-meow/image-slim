@@ -88,3 +88,11 @@ tool_timeout_sec = 3600
 ```
 
 需要多个根目录时重复 `--allow-root` 和路径；只有确需覆盖原图时才加入 `--allow-overwrite`。
+
+## 音频扩展（v0.2.0 起）
+
+`image_slim_capabilities` 的 `core.formats` 增加 MP3/WAV/FLAC/M4A/Ogg 输入，
+`core.audio` 返回 MP3 输出、192/128/64 kbps 档位和 6 小时时长上限。
+`compress` 请求可传 `audio_bitrate_kbps`，省略时使用 128；图片的 `preset` 不影响音频。
+音频始终保存到 `output_subfolder` 并保留源文件，移除标签和封面；无体积收益时不写入新文件。
+目录授权与既有覆盖授权检查继续生效。旧图片请求可以不传新增字段。

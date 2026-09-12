@@ -59,12 +59,20 @@ function cargoSections() {
     .map((id) => packages.get(id))
     .filter((pkg) => pkg?.source)
     .sort((left, right) => `${left.name}@${left.version}`.localeCompare(`${right.name}@${right.version}`))
-    .map((pkg) => section(
-      `Rust: ${pkg.name} ${pkg.version}`,
-      pkg.license,
-      pkg.repository || pkg.homepage,
-      licenseFiles(dirname(pkg.manifest_path))
-    ));
+    .flatMap((pkg) => {
+      const directory = dirname(pkg.manifest_path);
+      const sections = [section(`Rust: ${pkg.name} ${pkg.version}`, pkg.license,
+        pkg.repository || pkg.homepage, licenseFiles(directory))];
+      if (pkg.name === 'symphonia') sections.push(section(
+        'Symphonia and its codec/container crates: MPL-2.0 full text', 'MPL-2.0',
+        'https://www.mozilla.org/MPL/2.0/', [join(root, 'third-party', 'symphonia', 'MPL-2.0.txt')]
+      ));
+      if (pkg.name === 'mp3lame-sys') sections.push(section(
+        'Bundled native codec: LAME 3.100', 'LGPL-2.0-or-later',
+        'https://lame.sourceforge.io/', [join(directory, 'lame-3.100', 'COPYING')]
+      ));
+      return sections;
+    });
 }
 
 function nodeSections() {
@@ -106,7 +114,8 @@ function adaptedSourceSection() {
   )];
 }
 
-const introduction = `image-slim 0.1.0 third-party licenses
+const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+const introduction = `image-slim ${packageVersion} third-party licenses
 
 Generated from package-lock.json and src-tauri/Cargo.lock for the Windows x64
 release build. Build-only and development-only packages are excluded where the

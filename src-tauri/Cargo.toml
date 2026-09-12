@@ -1,7 +1,7 @@
 [package]
 name = "image-slim"
-version = "0.1.0"
-description = "Offline image compression for Windows"
+version = "0.2.0"
+description = "Offline image and audio compression for Windows"
 authors = ["image-slim contributors"]
 edition = "2024"
 rust-version = "1.93"

@@ -131,6 +131,9 @@ pub fn create(
     scheduler: &WorkScheduler,
     cache: &PreviewCache,
 ) -> AppResult<PreviewResult> {
+    if request.item.format.is_audio() {
+        return Err(AppError::new(ErrorCode::InvalidRequest).detail("Audio has no image preview"));
+    }
     scheduler.ensure_preview_allowed()?;
     crate::scanner::validate_runtime_item(&request.item)?;
     output::validate_item_mapping(&request.item).map_err(|error| {
@@ -333,6 +336,7 @@ mod tests {
             format: ImageFormat::Png,
             width: 2,
             height: 2,
+            audio: None,
             original_size: 3,
             modified_ms: 0,
         }

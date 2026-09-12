@@ -1,5 +1,9 @@
 import { writable } from 'svelte/store';
-import type { InputItem, ItemProgress, TaskItem, TaskStatus } from './types';
+import type { BatchSettings, InputItem, ItemProgress, TaskItem, TaskStatus } from './types';
+import { isAudioFormat } from './types';
+
+export type QueueFilter = 'all' | 'pending' | 'done' | 'failed' | 'cancelled';
+export type QueueSort = 'path' | 'size' | 'saved';
 
 export interface QueueTotals {
   statuses: Record<TaskStatus, number>;
@@ -12,6 +16,7 @@ export interface QueueSnapshot {
   version: number;
   ids: readonly string[];
   count: number;
+  audioCount: number;
   totals: QueueTotals;
 }
 
@@ -19,6 +24,7 @@ export class QueueController {
   private readonly items = new Map<string, TaskItem>();
   private orderedIds: readonly string[] = [];
   private version = 0;
+  private audioCount = 0;
   private totalsState = emptyTotals();
   private readonly store = writable<QueueSnapshot>(this.createSnapshot());
 
@@ -76,7 +82,9 @@ export class QueueController {
       }
       if (preferredInput(existing, input) === input) {
         this.adjustTotals(existing, -1);
-        const updated = { ...existing, ...input };
+        const updated = existing.status === 'ready'
+          ? { ...existing, ...input }
+          : { ...existing, input_root: input.input_root, relative_path: input.relative_path };
         this.items.set(input.id, updated);
         this.adjustTotals(updated, 1);
         changed = true;
@@ -107,31 +115,20 @@ export class QueueController {
     this.bump();
   }
 
-  markReady(id: string): TaskItem | undefined {
-    const item = this.items.get(id);
-    if (!item) return undefined;
-    this.adjustTotals(item, -1);
-    item.status = 'ready';
-    item.output_path = undefined;
-    item.output_size = undefined;
-    item.saved_bytes = 0;
-    item.error = undefined;
-    this.adjustTotals(item, 1);
-    this.bump();
-    return item;
-  }
-
-  resetResults(): void {
-    for (const item of this.items.values()) {
-      this.adjustTotals(item, -1);
-      item.status = 'ready';
-      item.output_path = undefined;
-      item.output_size = undefined;
-      item.saved_bytes = 0;
-      item.error = undefined;
+  beginAttempt(inputs: InputItem[], settings: BatchSettings): void {
+    for (const input of inputs) {
+      const previous = this.items.get(input.id);
+      if (!previous) continue;
+      this.adjustTotals(previous, -1);
+      const item = { ...asTask(input), attempt: { ...settings } };
+      this.items.set(input.id, item);
       this.adjustTotals(item, 1);
     }
     this.bump();
+  }
+
+  get hasAudio(): boolean {
+    return this.audioCount > 0;
   }
 
   readyItems(): TaskItem[] {
@@ -139,16 +136,21 @@ export class QueueController {
   }
 
   remove(id: string): void {
-    const item = this.items.get(id);
-    if (!item || !this.items.delete(id)) return;
-    this.adjustTotals(item, -1);
-    const index = this.orderedIds.indexOf(id);
-    if (index >= 0) {
-      this.orderedIds = [
-        ...this.orderedIds.slice(0, index),
-        ...this.orderedIds.slice(index + 1)
-      ];
+    this.removeMany([id]);
+  }
+
+  removeMany(ids: readonly string[]): void {
+    const removed = new Set(ids);
+    let changed = false;
+    for (const id of removed) {
+      const item = this.items.get(id);
+      if (!item) continue;
+      this.adjustTotals(item, -1);
+      this.items.delete(id);
+      changed = true;
     }
+    if (!changed) return;
+    this.orderedIds = this.orderedIds.filter((id) => !removed.has(id));
     this.bump();
   }
 
@@ -157,10 +159,12 @@ export class QueueController {
     this.items.clear();
     this.orderedIds = [];
     this.totalsState = emptyTotals();
+    this.audioCount = 0;
     this.bump();
   }
 
   private adjustTotals(item: TaskItem, direction: 1 | -1): void {
+    if (isAudioFormat(item.format)) this.audioCount += direction;
     this.totalsState.statuses[item.status] += direction;
     this.totalsState.originalBytes += direction * item.original_size;
     this.totalsState.outputBytes += direction * (item.output_size ?? 0);
@@ -183,6 +187,7 @@ export class QueueController {
       version: this.version,
       ids: this.orderedIds,
       count: this.orderedIds.length,
+      audioCount: this.audioCount,
       totals: cloneTotals(this.totalsState)
     };
   }
@@ -195,9 +200,40 @@ export function virtualRange(
   rowHeight = 62,
   overscan = 8
 ): { start: number; end: number } {
-  const start = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
+  const clampedTop = Math.max(0, Math.min(scrollTop, count * rowHeight - viewportHeight));
+  const start = Math.max(0, Math.floor(clampedTop / rowHeight) - overscan);
   const visible = Math.ceil(viewportHeight / rowHeight) + overscan * 2;
   return { start, end: Math.min(count, start + visible) };
+}
+
+export function taskMatchesFilter(item: TaskItem, filter: QueueFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'pending') return item.status === 'ready' || item.status === 'processing';
+  if (filter === 'done') return item.status === 'completed' || item.status === 'unchanged';
+  return item.status === filter;
+}
+
+export function visibleTaskIds(
+  ids: readonly string[],
+  getItem: (id: string) => TaskItem | undefined,
+  filter: QueueFilter,
+  query: string,
+  sort: QueueSort
+): readonly string[] {
+  const search = query.trim().toLowerCase();
+  if (filter === 'all' && !search && sort === 'path') return ids;
+  const items = ids.flatMap((id) => {
+    const item = getItem(id);
+    return item && taskMatchesFilter(item, filter)
+      && (!search || item.source_path.toLowerCase().includes(search) || item.name.toLowerCase().includes(search))
+      ? [item] : [];
+  });
+  if (sort !== 'path') {
+    items.sort((left, right) => (sort === 'size'
+      ? right.original_size - left.original_size
+      : right.saved_bytes - left.saved_bytes) || comparePaths(left.source_path, right.source_path));
+  }
+  return items.map((item) => item.id);
 }
 
 function asTask(input: InputItem): TaskItem {

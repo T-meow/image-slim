@@ -6,6 +6,12 @@ export const PRESET_KEY = 'image-slim-preset';
 export const OUTPUT_MODE_KEY = 'image-slim-output-mode';
 export const OUTPUT_FOLDER_KEY = 'image-slim-output-folder';
 export const METADATA_KEY = 'image-slim-metadata';
+export const AUDIO_BITRATE_KEY = 'image-slim-audio-bitrate';
+
+export function initialAudioBitrate(): number {
+  const saved = Number(localStorage.getItem(AUDIO_BITRATE_KEY));
+  return [64, 128, 192].includes(saved) ? saved : 128;
+}
 
 export function initialMetadataPolicy(): 'essential' | 'supported' {
   const saved = localStorage.getItem(METADATA_KEY);

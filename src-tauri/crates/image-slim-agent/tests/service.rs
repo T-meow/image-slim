@@ -189,6 +189,7 @@ fn compress_request(plan_id: Option<String>, paths: Option<Vec<String>>) -> Comp
         plan_id,
         paths,
         preset: CompressionPreset::Balanced,
+        audio_bitrate_kbps: 128,
         output_mode: OutputMode::Subfolder,
         output_subfolder: "compressed".into(),
         metadata_policy: MetadataPolicy::Essential,

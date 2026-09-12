@@ -10,6 +10,7 @@ use uuid::Uuid;
 const STALE_TEMP_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 pub fn output_path(item: &InputItem, mode: OutputMode, subfolder: &str) -> Result<PathBuf> {
+    let mode = effective_output_mode(item, mode);
     let source = PathBuf::from(&item.source_path);
     if mode == OutputMode::Overwrite {
         return Ok(source);
@@ -24,7 +25,26 @@ pub fn output_path(item: &InputItem, mode: OutputMode, subfolder: &str) -> Resul
         return Err(anyhow!("Input relative path is unsafe"));
     }
     let root = PathBuf::from(&item.input_root);
-    Ok(root.join(subfolder).join(relative))
+    let target = root.join(subfolder).join(relative);
+    if item.format.is_audio() && item.format != crate::model::ImageFormat::Mp3 {
+        // Keep the input extension to distinguish e.g. song.wav and song.flac.
+        let mut name = target
+            .file_name()
+            .ok_or_else(|| anyhow!("Missing output file name"))?
+            .to_os_string();
+        name.push(".mp3");
+        Ok(target.with_file_name(name))
+    } else {
+        Ok(target)
+    }
+}
+
+pub fn effective_output_mode(item: &InputItem, requested: OutputMode) -> OutputMode {
+    if item.format.is_audio() {
+        OutputMode::Subfolder
+    } else {
+        requested
+    }
 }
 
 pub fn validate_item_mapping(item: &InputItem) -> Result<()> {
@@ -62,7 +82,7 @@ pub fn validate_output_target(
     subfolder: &str,
     target: &Path,
 ) -> Result<()> {
-    if mode == OutputMode::Overwrite {
+    if effective_output_mode(item, mode) == OutputMode::Overwrite {
         return Ok(());
     }
     let root = dunce::canonicalize(&item.input_root)?;
@@ -253,6 +273,7 @@ mod tests {
             format: ImageFormat::Png,
             width: 1,
             height: 1,
+            audio: None,
             original_size: 0,
             modified_ms: 0,
         }

@@ -19,63 +19,56 @@ fn envelope_output_schema<T: JsonSchema + 'static>() -> Arc<Map<String, serde_js
         .expect("image-slim result schema must be an object");
     let mut result_schema = (*generated).clone();
     strip_schema_metadata(&mut result_schema);
-    let mut definitions = result_schema.remove("$defs");
-    if let Some(definitions) = definitions
-        .as_mut()
-        .and_then(serde_json::Value::as_object_mut)
-    {
-        if definitions.contains_key("ErrorCode") {
-            definitions.insert("ErrorCode".into(), json!({"type": "string"}));
-        }
-        if definitions.contains_key("AppError") {
-            definitions.insert(
-                "AppError".into(),
-                json!({
-                    "type": "object",
-                    "properties": {
-                        "code": {"type": "string"},
-                        "params": {"type": "object"},
-                        "path": {"type": ["string", "null"]},
-                        "detail": {"type": ["string", "null"]},
-                        "retryable": {"type": "boolean"}
-                    },
-                    "required": ["code", "params", "path", "detail", "retryable"]
-                }),
-            );
-        }
+    let mut definitions = result_schema
+        .remove("$defs")
+        .and_then(|value| value.as_object().cloned())
+        .unwrap_or_default();
+    if definitions.contains_key("ErrorCode") {
+        definitions.insert("ErrorCode".into(), json!({"type": "string"}));
     }
-    let mut root = Map::from_iter([
+    definitions.insert(
+        "AppError".into(),
+        json!({
+            "type": "object",
+            "properties": {
+                "code": {"type": "string"},
+                "params": {"type": "object"},
+                "path": {"type": ["string", "null"]},
+                "detail": {"type": ["string", "null"]},
+                "retryable": {"type": "boolean"}
+            },
+            "required": ["code", "params", "path", "detail", "retryable"]
+        }),
+    );
+    let root = Map::from_iter([
         ("type".into(), json!("object")),
         (
             "properties".into(),
             json!({
                 "ok": {"type": "boolean"},
                 "result": result_schema,
-                "error": {
-                    "type": "object",
-                    "properties": {
-                        "code": {"type": "string"},
-                        "params": {"type": "object"},
-                        "path": {"type": ["string", "null"]},
-                        "detail": {"type": ["string", "null"]},
-                        "retryable": {"type": "boolean"}
-                    },
-                    "required": ["code", "params", "path", "detail", "retryable"]
-                }
+                "error": {"$ref": "#/$defs/AppError"}
             }),
         ),
         ("required".into(), json!(["ok"])),
+        ("$defs".into(), json!(definitions)),
     ]);
-    if let Some(definitions) = definitions {
-        root.insert("$defs".into(), definitions);
-    }
     Arc::new(root)
 }
 
 fn strip_schema_metadata(schema: &mut Map<String, serde_json::Value>) {
+    schema.remove("$schema");
     schema.remove("title");
     schema.remove("description");
     schema.remove("default");
+    // Numeric formats are annotations; integer bounds remain in the schema.
+    // A property named "format" has an object value and must be retained.
+    if matches!(
+        schema.get("format").and_then(serde_json::Value::as_str),
+        Some("uint32" | "uint64" | "int32" | "int64")
+    ) {
+        schema.remove("format");
+    }
     for value in schema.values_mut() {
         strip_value_metadata(value);
     }

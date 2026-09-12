@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import type { AppError, BatchSummary } from './types';
 
 export interface SessionState {
+  starting: boolean;
   scanning: boolean;
   running: boolean;
   stopping: boolean;
@@ -19,6 +20,7 @@ export interface SessionState {
 }
 
 const INITIAL_STATE: SessionState = {
+  starting: false,
   scanning: false,
   running: false,
   stopping: false,
@@ -77,6 +79,7 @@ export class SessionController {
     this.finishedItemIds.clear();
     this.store.update((state) => ({
       ...state,
+      starting: false,
       running: true,
       stopping: false,
       activeBatchId: batchId,
@@ -86,6 +89,14 @@ export class SessionController {
       notice: '',
       noticeIsError: false
     }));
+  }
+
+  beginStarting(): void {
+    this.store.update((state) => ({ ...state, starting: true, notice: '', noticeIsError: false }));
+  }
+
+  finishStarting(): void {
+    this.store.update((state) => ({ ...state, starting: false }));
   }
 
   itemFinished(itemId: string): void {
@@ -135,4 +146,8 @@ export class SessionController {
   resetSummary(): void {
     this.store.update((state) => ({ ...state, lastSummary: undefined }));
   }
+}
+
+export function sessionBusy(state: SessionState): boolean {
+  return state.starting || state.scanning || state.running || state.stopping;
 }

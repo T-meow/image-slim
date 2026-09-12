@@ -4,7 +4,7 @@
 
 <h1 align="center">image-slim</h1>
 
-<p align="center">完全离线的 Windows 批量图片压缩器。</p>
+<p align="center">完全离线的 Windows 批量图片与音频压缩器。</p>
 
 <p align="center">
   <strong>简体中文</strong> · <a href="README.en.md">English</a>
@@ -12,12 +12,12 @@
 
 <p align="center">
   <a href="https://t-meow.github.io/image-slim/"><strong>官网与下载</strong></a> ·
-  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.1.0">Release v0.1.0</a> ·
+  <a href="https://github.com/T-meow/image-slim/releases/tag/v0.2.0">Release v0.2.0</a> ·
   <a href="https://github.com/T-meow/image-slim/issues">问题反馈</a>
 </p>
 
-image-slim 使用 Tauri 2、Svelte 5 与 Rust 构建，在本机压缩 PNG、JPEG 和 WebP，
-不上传图片，不需要账号，也不包含遥测。当前版本为 `0.1.0`，仅支持 Windows 10/11 x64。
+image-slim 使用 Tauri 2、Svelte 5 与 Rust 构建，在本机压缩 PNG、JPEG、WebP 图片，并将支持的音频压缩为 MP3。
+不上传文件，不需要账号，也不包含遥测。当前版本为 `0.2.0`，仅支持 Windows 10/11 x64。
 
 <p align="center">
   <img src="docs/Screenshot%202.png" width="100%" alt="image-slim 批量队列与压缩前后对比界面">
@@ -27,25 +27,26 @@ image-slim 使用 Tauri 2、Svelte 5 与 Rust 构建，在本机压缩 PNG、JPE
 
 | 版本 | 适用场景 | 下载 |
 |---|---|---|
-| Windows 安装版 | 推荐；安装 GUI 与 Agent | [`image-slim_0.1.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-setup.exe) |
-| GUI 便携版 | 免安装的单文件桌面程序 | [`image-slim_0.1.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim_0.1.0_x64-portable.exe) |
-| Agent 独立版 | JSON CLI / MCP stdio 自动化 | [`image-slim-agent_0.1.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/image-slim-agent_0.1.0_x64.exe) |
+| Windows 安装版 | 推荐；安装 GUI 与 Agent | [`image-slim_0.2.0_x64-setup.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-setup.exe) |
+| GUI 便携版 | 免安装的单文件桌面程序 | [`image-slim_0.2.0_x64-portable.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim_0.2.0_x64-portable.exe) |
+| Agent 独立版 | JSON CLI / MCP stdio 自动化 | [`image-slim-agent_0.2.0_x64.exe`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/image-slim-agent_0.2.0_x64.exe) |
 
-完整校验值见 [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.1.0/SHA256SUMS.txt)。
-`0.1.0` 尚未代码签名，Windows SmartScreen 可能显示未知发布者；可在下载后使用
+完整校验值见 [`SHA256SUMS.txt`](https://github.com/T-meow/image-slim/releases/download/v0.2.0/SHA256SUMS.txt)。
+`0.2.0` 尚未代码签名，Windows SmartScreen 可能显示未知发布者；可在下载后使用
 `Get-FileHash <文件路径> -Algorithm SHA256` 核对文件。
 
 ## 特性与优势
 
 | 特性 | 能力与优点 |
 |---|---|
-| 大文件与大批量 | **单文件最大 `512 MiB`**；单图最大 `100,000,000` 像素、单边最大 `65,535` 像素；单次队列最多 `10,000` 张图片。超限文件只会单独报错，不影响队列中的其他任务。 |
+| 大文件与大批量 | **单文件最大 `512 MiB`**；单图最大 `100,000,000` 像素、单边最大 `65,535` 像素；单次队列最多 `10,000` 个文件。超限文件只会单独报错，不影响队列中的其他任务。 |
 | 完全离线 | 图片、路径、预览和压缩结果始终留在本机；无需账号，不监听网络端口，也没有遥测、云同步或自动更新。 |
 | 三种格式、三个档位 | 原生支持静态 PNG、JPEG、WebP，提供无损、均衡、强力档位；分别使用 OxiPNG、libimagequant、MozJPEG 与 libwebp 完成针对性优化。 |
+| 音频压缩与试听 | MP3、WAV、FLAC、M4A、Ogg 输入转为 MP3，提供 192/128/64 kbps，默认 128；支持原文件与已保存结果试听，始终保留音频源文件。 |
 | 不做负优化 | 每个候选结果都会重新解码并验证格式、尺寸和完整性；无损档还会核对解码像素。只有结果更小时才采用，否则保留或复制原图。 |
-| 顺手的批处理 | 文件、文件夹可以混合拖入，目录会递归扫描并保留相对结构；支持虚拟化大队列、逐项失败重试、取消和整批节省空间统计。 |
+| 顺手的批处理 | 文件、文件夹可以混合拖入，目录会递归扫描并保留相对结构；虚拟队列支持搜索、状态筛选、体积/节省排序、失败批量重试和清除已完成，汇总当前队列的压缩收益。 |
 | 内存感知并行 | 最多两个工作任务并行处理，并按图片格式和尺寸估算峰值内存，为 Windows 与 WebView 保留空间，减少大图批处理挤满内存的风险。 |
-| 所见即所得 | 在写入前即可用滑杆对比原图与压缩结果，并在 `50%` 至 `200%` 范围缩放检查细节。 |
+| 写入前预览 | 可直接拖动图中的分界线，或用滑杆、方向键对比左右图层；支持适应窗口及 `0.5×` 至 `3×` 视图缩放。预览最长边为 `2048` 像素，视图倍数不代表原图像素比例。 |
 | 输出更安全 | 可写入自定义子文件夹或确认后覆盖原图；覆盖前会检测源文件变化，并通过同目录临时文件和 Windows 原子替换降低中断损坏风险。 |
 | 隐私元数据可控 | 默认移除 EXIF 等隐私相关元数据并保留显示所需信息，也可切换为保留当前支持的元数据。 |
 | GUI 与自动化共用核心 | 除桌面界面外还提供 JSON CLI 与 MCP stdio Agent；目录需显式授权，覆盖原图需要进程参数和请求字段双重许可。 |
@@ -86,10 +87,10 @@ MCP 暴露 `image_slim_capabilities`、`image_slim_plan`、`image_slim_compress`
 
 - 单文件最大 `512 MiB`（`536,870,912` 字节）。
 - 单图最大 `100,000,000` 像素，任一边最大 `65,535` 像素。
-- 单次队列最多 `10,000` 张图片，达到上限后停止遍历剩余目录。
+- 单次队列最多 `10,000` 个文件，达到上限后停止遍历剩余目录。
 - 处理前会按格式估算峰值内存并为系统/WebView 保留内存；即使格式边界允许，当前可用内存不足时仍会明确拒绝。
 
-首版不包含 AVIF、格式转换、缩放、GIF、目标 KB 压缩或图片编辑。
+当前版本不包含 AVIF、图片格式转换、缩放、GIF、目标 KB 压缩或图片编辑。音频支持范围见下方“音频压缩”。
 
 ## 压缩档位
 
@@ -119,9 +120,27 @@ PNG 校验包含完全透明像素下隐藏的 RGB。应用只在候选文件更
 
 1. 使用工具栏选择图片/文件夹，或直接拖入窗口。
 2. 选择压缩档位、输出模式与元数据策略。
-3. 在任务列表中选择图片检查预览；可同步缩放并拖动对比滑杆。
+3. 在任务列表中选择图片检查当前设置的预览；可同步缩放并拖动图中的分界线或底部滑杆。
 4. 点击“开始压缩”。已有输出或覆盖原图时，应用会先显示一次确认。
-5. 完成后可从任务行直接打开输出位置；失败项可以单独重试。
+5. 完成后可查看队列结果摘要、筛选结果、仅重试失败或清除已完成；任务行支持打开输出位置与重新处理。
+
+修改档位、输出位置或元数据设置会保留已有结果，新设置在下一次处理时生效。重新处理会先扫描当前文件，扫描失败或取消时保留原任务；取消覆盖确认也会保留上次结果。覆盖原图后只展示已保存的文件，不再将它当作原始文件重新生成对比。
+
+## 音频压缩
+
+从 `v0.2.0` 起，可将音频和图片混合拖入同一队列，安装版、便携版及 Agent 均包含音频压缩功能。
+
+| 输入 | 范围 |
+|---|---|
+| MP3 / WAV / FLAC | MP3、PCM WAV、FLAC；单声道或双声道 |
+| M4A | AAC-LC 或 ALAC，不含 DRM |
+| Ogg | Vorbis，不含 Opus |
+
+- 输出统一为 **MP3**，音频码率独立选择 **192 / 128 / 64 kbps**，默认 128 kbps；图片无损档位不作用于音频。输入最长 6 小时、最大 512 MiB，采样率 8–192 kHz；编码器可按码率调整输出采样率。
+- 音频始终写入子文件夹并保留源文件，包括选择“覆盖图片”时。转换示例：`song.wav` → `compressed/song.wav.mp3`；MP3 输入保留原文件名。目录结构保持不变，重复输出目标会在写入前阻止。
+- 分包解码并编码，结束后重新解码候选 MP3、核对时长和声道。结果没有更小时保留源文件、不生成新文件；音频输出移除标签与封面，图片元数据开关只作用于图片。
+- 选择音频可查看时长、采样率和声道，试听原文件及已保存结果；部分源编码可能无法由内置播放器试听，仍可转换为 MP3。处理时暂停试听，取消时不保留半成品。
+- 编解码器内置，运行时无需安装 FFmpeg 或下载组件。Agent 的 `compress` 请求支持可选 `audio_bitrate_kbps`；能力接口通过 `core.audio` 公布音频输出和码率范围。
 
 ## 从源码运行
 
@@ -180,7 +199,7 @@ npm run tauri:build
 npm run tauri:build:no-bundle
 ```
 
-`src-tauri/target/` 仅作为编译缓存和中间目录。`0.1.0` 产物尚未代码签名，Windows
+`src-tauri/target/` 仅作为编译缓存和中间目录。`0.2.0` 产物尚未代码签名，Windows
 SmartScreen 可能显示未知发布者提示。
 
 静态下载页位于 `site/`，合并到 `main` 后由 [Pages workflow](.github/workflows/pages.yml)

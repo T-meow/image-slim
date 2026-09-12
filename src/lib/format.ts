@@ -30,3 +30,9 @@ export function validSubfolderName(value: string): boolean {
   const stem = trimmed.split('.')[0].toUpperCase();
   return !/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(stem);
 }
+export function formatDuration(milliseconds: number | null | undefined): string {
+  if (milliseconds == null || !Number.isFinite(milliseconds) || milliseconds < 0) return '—';
+  const seconds = Math.round(milliseconds / 1000);
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+}

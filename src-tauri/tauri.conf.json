@@ -24,15 +24,20 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'",
-      "devCsp": "default-src 'self' ipc: http://ipc.localhost http://127.0.0.1:1421; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:1421 ws://127.0.0.1:1421; object-src 'none'; base-uri 'self'",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'",
+      "devCsp": "default-src 'self' ipc: http://ipc.localhost http://127.0.0.1:1421; img-src 'self' asset: http://asset.localhost data: blob:; media-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:1421 ws://127.0.0.1:1421; object-src 'none'; base-uri 'self'",
       "assetProtocol": {
         "enable": true,
         "scope": [
           "**/*.[pP][nN][gG]",
           "**/*.[jJ][pP][gG]",
           "**/*.[jJ][pP][eE][gG]",
-          "**/*.[wW][eE][bB][pP]"
+          "**/*.[wW][eE][bB][pP]",
+          "**/*.[mM][pP]3",
+          "**/*.[wW][aA][vV]",
+          "**/*.[fF][lL][aA][cC]",
+          "**/*.[mM]4[aA]",
+          "**/*.[oO][gG][gG]"
         ]
       }
     }
@@ -41,8 +46,8 @@
     "active": true,
     "targets": ["nsis"],
     "category": "Utility",
-    "shortDescription": "Offline batch image compressor",
-    "longDescription": "image-slim compresses PNG, JPEG, and WebP images locally with lossless and perceptual presets.",
+    "shortDescription": "Offline batch image and audio compressor",
+    "longDescription": "image-slim compresses PNG, JPEG, and WebP images and converts supported audio to MP3 locally, with batch processing and protected output.",
     "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
     "resources": {

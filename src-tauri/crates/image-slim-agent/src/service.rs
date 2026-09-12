@@ -437,6 +437,7 @@ impl AgentService {
                 .map(|planned| planned.item)
                 .collect(),
             preset: request.preset,
+            audio_bitrate_kbps: Some(request.audio_bitrate_kbps),
             output_mode: request.output_mode,
             output_subfolder: request.output_subfolder.clone(),
             metadata_policy: request.metadata_policy,
@@ -909,6 +910,7 @@ mod tests {
                     format: ImageFormat::Png,
                     width: 1,
                     height: 1,
+                    audio: None,
                     original_size: 100,
                     modified_ms: 1,
                 },

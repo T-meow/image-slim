@@ -15,7 +15,7 @@ describe('localized application errors', () => {
   });
 
   it('interpolates dynamic capability hints', () => {
-    expect(interpolate(copy.zh.addHint, { formats: 'PNG、JPEG' })).toContain('PNG、JPEG');
-    expect(interpolate(copy.en.addHint, { formats: 'PNG / JPEG' })).toContain('PNG / JPEG');
+    expect(interpolate(copy.zh.supportedHint, { formats: 'PNG、JPEG、MP3' })).toContain('PNG、JPEG、MP3');
+    expect(interpolate(copy.en.supportedHint, { formats: 'PNG / JPEG / MP3' })).toContain('PNG / JPEG / MP3');
   });
 });

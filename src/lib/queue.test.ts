@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { get } from 'svelte/store';
-import { QueueController, virtualRange } from './queue';
+import { QueueController, virtualRange, visibleTaskIds } from './queue';
 import type { InputItem } from './types';
 
 function input(index: number, overrides: Partial<InputItem> = {}): InputItem {
@@ -115,5 +115,22 @@ describe('QueueController', () => {
     expect(range.end - range.start).toBeLessThanOrEqual(26);
     expect(range.start).toBeGreaterThan(0);
     expect(range.end).toBeLessThan(10_000);
+  });
+
+  it('filters by status and path and sorts savings without changing queue order or totals', () => {
+    const queue = new QueueController();
+    queue.merge([input(1), input(2), input(3)]);
+    queue.update({ batch_id: 'a', item_id: '2', status: 'completed', output_path: 'C:\\out\\2.png', output_size: 60, saved_bytes: 40, error: null });
+    queue.update({ batch_id: 'a', item_id: '3', status: 'unchanged', output_path: 'C:\\out\\3.png', output_size: 100, saved_bytes: 0, error: null });
+    const snapshot = get(queue);
+    expect(visibleTaskIds(queue.ids, (id) => queue.get(id), 'done', 'IMAGES', 'saved')).toEqual(['2', '3']);
+    expect(visibleTaskIds(queue.ids, (id) => queue.get(id), 'pending', '2.png', 'path')).toEqual([]);
+    expect(get(queue)).toBe(snapshot);
+    expect(queue.ids).toEqual(['1', '2', '3']);
+  });
+
+  it('keeps a visible row when filtering a deeply scrolled queue to one result', () => {
+    expect(virtualRange(1, 62 * 5000, 620)).toEqual({ start: 0, end: 1 });
+    expect(virtualRange(0, 62 * 5000, 620)).toEqual({ start: 0, end: 0 });
   });
 });

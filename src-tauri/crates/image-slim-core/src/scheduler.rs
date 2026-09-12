@@ -70,7 +70,7 @@ impl WorkScheduler {
 
     fn acquire(&self, item: &InputItem, preview: bool) -> AppResult<WorkPermit> {
         let estimate = limits::estimated_peak_bytes(item);
-        let budget = self.memory_budget()?;
+        let budget = self.memory_budget(item.format.is_audio())?;
         if estimate > budget {
             return Err(AppError::new(ErrorCode::InsufficientMemory)
                 .path(&item.source_path)
@@ -103,14 +103,20 @@ impl WorkScheduler {
         })
     }
 
-    fn memory_budget(&self) -> AppResult<u64> {
+    fn memory_budget(&self, audio: bool) -> AppResult<u64> {
         #[cfg(test)]
         if let Some(budget) = *self.inner.test_budget.lock().expect("scheduler poisoned") {
             return Ok(budget);
         }
 
         let (total, available) = physical_memory()?;
-        let reserve = GIB.max(total / 5);
+        // Audio processes bounded PCM packets. Keep at least 1 GiB and half of
+        // currently available memory free rather than reserving decoded images.
+        let reserve = if audio {
+            GIB.max(available / 2)
+        } else {
+            GIB.max(total / 5)
+        };
         Ok(available.saturating_sub(reserve))
     }
 
@@ -179,6 +185,7 @@ mod tests {
             format: ImageFormat::Png,
             width,
             height,
+            audio: None,
             original_size: 1024,
             modified_ms: 0,
         }

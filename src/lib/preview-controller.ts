@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import { cancelPreview, createPreview, inTauri, normalizeAppError } from './tauri';
 import type { AppError, MetadataPolicy, CompressionPreset, PreviewResult, TaskItem } from './types';
+import { isAudioFormat, toInputItem } from './types';
 
 export interface PreviewState {
   result?: PreviewResult;
@@ -23,7 +24,7 @@ export class PreviewController {
     const token = ++this.token;
     void cancelPreview();
     this.store.set({ loading: false });
-    if (!item || !inTauri) return;
+    if (!item || !inTauri || isAudioFormat(item.format)) return;
     this.timer = window.setTimeout(
       () => void this.load(item, preset, metadataPolicy, token),
       PREVIEW_IDLE_DELAY_MS
@@ -51,7 +52,7 @@ export class PreviewController {
     try {
       const result = await createPreview({
         request_id: String(token),
-        item: stripTaskState(item),
+        item: toInputItem(item),
         preset,
         metadata_policy: metadataPolicy
       });
@@ -64,9 +65,4 @@ export class PreviewController {
       }
     }
   }
-}
-
-function stripTaskState(item: TaskItem) {
-  const { status: _status, output_path: _outputPath, output_size: _outputSize, saved_bytes: _savedBytes, error: _error, ...input } = item;
-  return input;
 }

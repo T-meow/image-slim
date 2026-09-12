@@ -151,6 +151,7 @@ struct BatchOptions {
     output_mode: OutputMode,
     output_subfolder: String,
     metadata_policy: MetadataPolicy,
+    audio_bitrate_kbps: u32,
     allow_conflicts: bool,
     expected_conflicts: HashMap<String, crate::model::SourceFingerprint>,
     expected_source_hashes: HashMap<String, String>,
@@ -163,6 +164,9 @@ impl From<&BatchRequest> for BatchOptions {
             output_mode: request.output_mode,
             output_subfolder: request.output_subfolder.clone(),
             metadata_policy: request.metadata_policy,
+            audio_bitrate_kbps: request
+                .audio_bitrate_kbps
+                .unwrap_or_else(crate::model::default_audio_bitrate),
             allow_conflicts: request.allow_conflicts,
             expected_conflicts: HashMap::new(),
             expected_source_hashes: HashMap::new(),
@@ -192,8 +196,18 @@ pub fn start_with_source_hashes(
         return Err(AppError::new(ErrorCode::Internal).detail("The batch is empty"));
     }
     limits::validate_queue_size(request.items.len())?;
-    if request.output_mode == OutputMode::Subfolder {
+    if request.output_mode == OutputMode::Subfolder
+        || request.items.iter().any(|item| item.format.is_audio())
+    {
         crate::scanner::validate_output_subfolder(&request.output_subfolder)?;
+    }
+    if !crate::audio::BITRATES.contains(
+        &request
+            .audio_bitrate_kbps
+            .unwrap_or_else(crate::model::default_audio_bitrate),
+    ) {
+        return Err(AppError::new(ErrorCode::InvalidRequest)
+            .detail("MP3 bitrate must be 64, 128, or 192 kbps"));
     }
     for item in &request.items {
         limits::validate_item(item)?;
@@ -213,6 +227,26 @@ pub fn start_with_source_hashes(
         })
         .collect::<AppResult<Vec<_>>>()?;
     let conflict_count = targets.iter().filter(|target| target.exists()).count();
+    let source_keys: HashSet<_> = request
+        .items
+        .iter()
+        .map(|item| conflict_key(Path::new(&item.source_path)))
+        .collect();
+    let mut target_keys = HashSet::new();
+    for (item, target) in request.items.iter().zip(&targets) {
+        if output::effective_output_mode(item, options.output_mode) == OutputMode::Subfolder
+            && source_keys.contains(&conflict_key(target))
+        {
+            return Err(AppError::new(ErrorCode::OutputConflict)
+                .path(target)
+                .detail("An output would replace a source file in the active batch"));
+        }
+        if !target_keys.insert(conflict_key(target)) {
+            return Err(AppError::new(ErrorCode::OutputConflict)
+                .path(target)
+                .detail("Multiple source files map to the same output; rename one input"));
+        }
+    }
     if conflict_count > 0 && !options.allow_conflicts {
         return Ok(BatchStartResult {
             status: BatchStartStatus::Conflicts,
@@ -220,8 +254,11 @@ pub fn start_with_source_hashes(
             conflict_count,
         });
     }
-    if options.output_mode == OutputMode::Subfolder && options.allow_conflicts {
-        for target in targets.iter().filter(|target| target.exists()) {
+    if options.allow_conflicts {
+        for (_, target) in request.items.iter().zip(&targets).filter(|(item, target)| {
+            target.exists()
+                && output::effective_output_mode(item, options.output_mode) == OutputMode::Subfolder
+        }) {
             if !target.is_file() {
                 return Err(AppError::new(ErrorCode::OutputConflict)
                     .path(target)
@@ -436,7 +473,9 @@ fn process_item_inner(
     ensure_active(&cancelled, item)?;
 
     let source_path = Path::new(&item.source_path);
-    let source = fs::read(source_path).map_err(|error| AppError::io(error, source_path))?;
+    let source: Arc<[u8]> = fs::read(source_path)
+        .map_err(|error| AppError::io(error, source_path))?
+        .into();
     let source_hash = output::content_hash(&source);
     if options
         .expected_source_hashes
@@ -448,7 +487,28 @@ fn process_item_inner(
             .detail("Source content changed after planning")
             .retryable(true));
     }
-    let encoded = if let Some(candidate) =
+    let encoded: Vec<u8> = if item.format.is_audio() {
+        match crate::audio::compress(
+            source.clone(),
+            item.format,
+            options.audio_bitrate_kbps,
+            &cancelled,
+        )
+        .map_err(|error| codec_error(item, error, &cancelled))?
+        {
+            Some(candidate) => candidate,
+            None => {
+                ensure_active(&cancelled, item)?;
+                output::assert_content_unchanged(item, &source_hash)
+                    .map_err(|error| source_changed(item, error))?;
+                return Ok((
+                    TaskStatus::Unchanged,
+                    crate::scanner::normalize_display_path(source_path),
+                    source.len() as u64,
+                ));
+            }
+        }
+    } else if let Some(candidate) =
         cache.candidate(item, options.preset, options.metadata_policy, &source_hash)
     {
         candidate
@@ -467,6 +527,7 @@ fn process_item_inner(
 
     let target = output::output_path(item, options.output_mode, &options.output_subfolder)
         .map_err(AppError::internal)?;
+    let output_mode = output::effective_output_mode(item, options.output_mode);
     let preflight = || -> Result<()> {
         if cancelled.load(Ordering::SeqCst) {
             return Err(anyhow!("cancelled"));
@@ -478,17 +539,12 @@ fn process_item_inner(
             return Err(anyhow!("cancelled"));
         }
         output::assert_content_unchanged(item, &source_hash)?;
-        validate_output_conflict(options, &target)?;
-        output::validate_output_target(
-            item,
-            options.output_mode,
-            &options.output_subfolder,
-            &target,
-        )
+        validate_output_conflict(options, &target, output_mode)?;
+        output::validate_output_target(item, output_mode, &options.output_subfolder, &target)
     };
 
     if encoded.len() >= source.len() {
-        if options.output_mode == OutputMode::Subfolder {
+        if output_mode == OutputMode::Subfolder {
             output::atomic_write_guarded(&target, &source, preflight, final_guard)
                 .map_err(|error| output_error(item, error, &cancelled))?;
         } else {
@@ -496,13 +552,11 @@ fn process_item_inner(
         }
         return Ok((
             TaskStatus::Unchanged,
-            crate::scanner::normalize_display_path(
-                if options.output_mode == OutputMode::Overwrite {
-                    source_path
-                } else {
-                    &target
-                },
-            ),
+            crate::scanner::normalize_display_path(if output_mode == OutputMode::Overwrite {
+                source_path
+            } else {
+                &target
+            }),
             source.len() as u64,
         ));
     }
@@ -579,8 +633,8 @@ fn output_error(item: &InputItem, error: anyhow::Error, cancelled: &AtomicBool) 
     }
 }
 
-fn validate_output_conflict(options: &BatchOptions, target: &Path) -> Result<()> {
-    if options.output_mode != OutputMode::Subfolder || !target.exists() {
+fn validate_output_conflict(options: &BatchOptions, target: &Path, mode: OutputMode) -> Result<()> {
+    if mode != OutputMode::Subfolder || !target.exists() {
         return Ok(());
     }
     let expected = options
@@ -650,6 +704,7 @@ mod tests {
             format: ImageFormat::Webp,
             width: 1,
             height: 1,
+            audio: None,
             original_size: metadata.len(),
             modified_ms: crate::scanner::modified_ms(metadata.modified().ok()),
         };
@@ -658,6 +713,7 @@ mod tests {
             output_mode: OutputMode::Subfolder,
             output_subfolder: "compressed".into(),
             metadata_policy: MetadataPolicy::Essential,
+            audio_bitrate_kbps: 128,
             allow_conflicts: false,
             expected_conflicts: HashMap::new(),
             expected_source_hashes: HashMap::new(),
@@ -697,6 +753,7 @@ mod tests {
             format: ImageFormat::Png,
             width: 1,
             height: 2,
+            audio: None,
             original_size: metadata.len(),
             modified_ms: crate::scanner::modified_ms(metadata.modified().ok()),
         };
@@ -705,6 +762,7 @@ mod tests {
             output_mode: OutputMode::Subfolder,
             output_subfolder: "compressed".into(),
             metadata_policy: MetadataPolicy::Essential,
+            audio_bitrate_kbps: 128,
             allow_conflicts: false,
             expected_conflicts: HashMap::new(),
             expected_source_hashes: HashMap::new(),
@@ -732,18 +790,19 @@ mod tests {
             output_mode: OutputMode::Subfolder,
             output_subfolder: "compressed".into(),
             metadata_policy: MetadataPolicy::Essential,
+            audio_bitrate_kbps: 128,
             allow_conflicts: true,
             expected_conflicts: HashMap::new(),
             expected_source_hashes: HashMap::new(),
         };
 
         fs::write(&target, b"first").unwrap();
-        assert!(validate_output_conflict(&options, &target).is_err());
+        assert!(validate_output_conflict(&options, &target, options.output_mode).is_err());
         options
             .expected_conflicts
             .insert(conflict_key(&target), output::fingerprint(&target).unwrap());
-        assert!(validate_output_conflict(&options, &target).is_ok());
+        assert!(validate_output_conflict(&options, &target, options.output_mode).is_ok());
         fs::write(&target, b"changed").unwrap();
-        assert!(validate_output_conflict(&options, &target).is_err());
+        assert!(validate_output_conflict(&options, &target, options.output_mode).is_err());
     }
 }

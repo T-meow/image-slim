@@ -10,6 +10,7 @@
   export let preserveSupported = false;
   export let disabled = false;
   export let folderValid = true;
+  export let hasAudio = false;
   export let onPreset: (value: CompressionPreset) => void;
   export let onOutputMode: (value: OutputMode) => void;
   export let onOutputSubfolder: (value: string) => void;
@@ -21,12 +22,13 @@
 
 <section class="settings-bar" aria-label={t.compressionSettings}>
   <div class="settings-group preset-group">
-    <span class="settings-label"><Gauge size={14} aria-hidden="true" />{t.status}</span>
+    <span class="settings-label"><Gauge size={14} aria-hidden="true" />{t.compressionPreset}</span>
     <div class="segmented" role="group" aria-label={t.compressionPreset}>
       {#each presets as value}
         <button
           type="button"
           class:active={preset === value}
+          aria-pressed={preset === value}
           title={t.presetTitles[value]}
           disabled={disabled}
           on:click={() => onPreset(value)}
@@ -44,12 +46,13 @@
         <button
           type="button"
           class:active={outputMode === value}
+          aria-pressed={outputMode === value}
           disabled={disabled}
           on:click={() => onOutputMode(value)}
         >{t.outputModes[value]}</button>
       {/each}
     </div>
-    {#if outputMode === 'subfolder'}
+    {#if outputMode === 'subfolder' || hasAudio}
       <label class="folder-input" class:invalid={!folderValid}>
         <span class="sr-only">{t.folderName}</span>
         <input
@@ -57,9 +60,11 @@
           disabled={disabled}
           aria-invalid={!folderValid}
           title={folderValid ? t.folderName : t.invalidFolder}
+          aria-describedby={!folderValid ? 'folder-error' : undefined}
           on:input={(event) => onOutputSubfolder(event.currentTarget.value)}
         />
       </label>
+      {#if !folderValid}<span id="folder-error" class="folder-error">{t.invalidFolder}</span>{/if}
     {/if}
   </div>
 

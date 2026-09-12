@@ -14,6 +14,7 @@ pub fn apply(
         ImageFormat::Png => apply_png(original, encoded, policy),
         ImageFormat::Jpeg => apply_jpeg(original, encoded, policy),
         ImageFormat::Webp => apply_webp(original, encoded, policy),
+        _ => Err(anyhow!("Image metadata cannot be applied to audio")),
     }
 }
 

@@ -17,12 +17,19 @@
 | img-parts | 0.4.0 | MIT OR Apache-2.0 | PNG/JPEG 元数据容器处理 |
 | image | 0.25.10 | MIT OR Apache-2.0 | 解码验证 |
 | BLAKE3 | 1.8.5 | CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception | 流式源文件与缓存内容校验 |
+| Symphonia 及其格式/解码模块 | 0.5.5 | MPL-2.0 | WAV、MP3、FLAC、AAC/ALAC M4A、Ogg Vorbis 解码 |
+| mp3lame-encoder / mp3lame-sys | 0.2.5 / 0.1.11 | LGPL-3.0 | LAME Rust 绑定 |
+| LAME（由 mp3lame-sys 捆绑） | 3.100 | LGPL-2.0-or-later | 静态链接 MP3 编码器 |
 
 JPEG 无损转码代码改编自 MIT 许可的 `losslessly 0.1.1`，其原始许可与归属
 已单独写入生成的许可汇编。当前构建不包含外置 `jpegtran.exe`；相同的
 MozJPEG DCT 系数转码 API 被静态链接到应用进程，以避免额外 sidecar 与进程调用面。
 
 完整依赖、著作权声明及许可原文使用以下命令从本机锁定依赖重新生成：
+
+Symphonia 的 MPL-2.0 完整文本归档于 `third-party/symphonia/MPL-2.0.txt`，来源为
+Mozilla 官方许可文件；LAME 自带的 `COPYING` 与 Rust 绑定许可均纳入汇编。
+音频测试样本由项目脚本合成，生成工具 FFmpeg 不随软件分发，也不用于运行时压缩。
 
 ```powershell
 npm run licenses

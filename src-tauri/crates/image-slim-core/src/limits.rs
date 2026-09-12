@@ -1,6 +1,7 @@
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::model::{
-    AppCapabilities, CompressionPreset, FormatCapability, ImageFormat, InputItem, InputLimits,
+    AppCapabilities, AudioCapability, CompressionPreset, FormatCapability, ImageFormat, InputItem,
+    InputLimits,
 };
 use std::fs;
 use std::path::Path;
@@ -28,6 +29,26 @@ pub fn capabilities() -> AppCapabilities {
                 format: ImageFormat::Webp,
                 extensions: vec!["webp".into()],
             },
+            FormatCapability {
+                format: ImageFormat::Mp3,
+                extensions: vec!["mp3".into()],
+            },
+            FormatCapability {
+                format: ImageFormat::Wav,
+                extensions: vec!["wav".into()],
+            },
+            FormatCapability {
+                format: ImageFormat::Flac,
+                extensions: vec!["flac".into()],
+            },
+            FormatCapability {
+                format: ImageFormat::M4a,
+                extensions: vec!["m4a".into()],
+            },
+            FormatCapability {
+                format: ImageFormat::Ogg,
+                extensions: vec!["ogg".into()],
+            },
         ],
         presets: vec![
             CompressionPreset::Lossless,
@@ -40,6 +61,11 @@ pub fn capabilities() -> AppCapabilities {
             max_dimension: MAX_DIMENSION,
             max_queue_items: MAX_QUEUE_ITEMS,
         },
+        audio: Some(AudioCapability {
+            output_format: ImageFormat::Mp3,
+            bitrates_kbps: crate::audio::BITRATES.to_vec(),
+            max_duration_seconds: crate::audio::MAX_DURATION_SECONDS as u32,
+        }),
     }
 }
 
@@ -88,10 +114,18 @@ pub fn validate_item(item: &InputItem) -> AppResult<()> {
 }
 
 pub fn estimated_peak_bytes(item: &InputItem) -> u64 {
+    if item.format.is_audio() {
+        // PCM is decoded one packet at a time; source and candidate are bounded.
+        return item
+            .original_size
+            .saturating_mul(4)
+            .saturating_add(128 * 1024 * 1024);
+    }
     let pixels = u64::from(item.width).saturating_mul(u64::from(item.height));
     let decoded_bytes_per_pixel = match item.format {
         ImageFormat::Png => 8,
         ImageFormat::Jpeg | ImageFormat::Webp => 4,
+        _ => unreachable!("Audio is accounted for above"),
     };
     pixels
         .saturating_mul(decoded_bytes_per_pixel)

@@ -12,6 +12,11 @@ pub enum ImageFormat {
     Png,
     Jpeg,
     Webp,
+    Mp3,
+    Wav,
+    Flac,
+    M4a,
+    Ogg,
 }
 
 impl ImageFormat {
@@ -20,6 +25,11 @@ impl ImageFormat {
             Self::Png => "PNG",
             Self::Jpeg => "JPEG",
             Self::Webp => "WebP",
+            Self::Mp3 => "MP3",
+            Self::Wav => "WAV",
+            Self::Flac => "FLAC",
+            Self::M4a => "M4A",
+            Self::Ogg => "Ogg",
         }
     }
 
@@ -28,7 +38,19 @@ impl ImageFormat {
             Self::Png => "png",
             Self::Jpeg => "jpg",
             Self::Webp => "webp",
+            Self::Mp3 => "mp3",
+            Self::Wav => "wav",
+            Self::Flac => "flac",
+            Self::M4a => "m4a",
+            Self::Ogg => "ogg",
         }
+    }
+
+    pub const fn is_audio(self) -> bool {
+        matches!(
+            self,
+            Self::Mp3 | Self::Wav | Self::Flac | Self::M4a | Self::Ogg
+        )
     }
 }
 
@@ -88,10 +110,25 @@ pub struct InputItem {
     pub format: ImageFormat,
     pub width: u32,
     pub height: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub audio: Option<AudioInfo>,
     #[ts(type = "number")]
     pub original_size: u64,
     #[ts(type = "number")]
     pub modified_ms: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize, TS)]
+pub struct AudioInfo {
+    pub sample_rate: u32,
+    pub channels: u32,
+    #[ts(type = "number | null")]
+    pub duration_ms: Option<u64>,
+}
+
+pub const fn default_audio_bitrate() -> u32 {
+    128
 }
 
 #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize, TS)]
@@ -158,6 +195,9 @@ pub struct BatchRequest {
     pub output_mode: OutputMode,
     pub output_subfolder: String,
     pub metadata_policy: MetadataPolicy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub audio_bitrate_kbps: Option<u32>,
     #[serde(default)]
     pub allow_conflicts: bool,
 }
@@ -222,4 +262,14 @@ pub struct AppCapabilities {
     pub formats: Vec<FormatCapability>,
     pub presets: Vec<CompressionPreset>,
     pub limits: InputLimits,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub audio: Option<AudioCapability>,
+}
+
+#[derive(Clone, Debug, JsonSchema, Serialize, TS)]
+pub struct AudioCapability {
+    pub output_format: ImageFormat,
+    pub bitrates_kbps: Vec<u32>,
+    pub max_duration_seconds: u32,
 }
