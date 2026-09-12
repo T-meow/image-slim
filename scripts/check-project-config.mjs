@@ -52,8 +52,9 @@ for (const pattern of [
 if (tauri.version !== '../package.json') {
   failures.push('Tauri version must be read from ../package.json');
 }
-if (!/node-version:\s*24\b/.test(ci) || !/toolchain:\s*1\.96\.0\b/.test(ci)) {
-  failures.push('Windows CI must pin Node.js 24 and Rust 1.96.0');
+if (!/node-version:\s*24\b/.test(ci) || !/toolchain:\s*1\.96\.0\b/.test(ci)
+  || !/^\s*RUSTUP_TOOLCHAIN:\s*1\.96\.0\s*$/m.test(ci)) {
+  failures.push('Windows CI must pin Node.js 24 and select Rust 1.96.0 with RUSTUP_TOOLCHAIN');
 }
 if (!ci.includes('npm run tauri:build:no-bundle')) {
   failures.push('Main-branch CI is missing the Tauri --no-bundle build');

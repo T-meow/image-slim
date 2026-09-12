@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RUSTUP_TOOLCHAIN: 1.96.0
+
 jobs:
   quality:
     runs-on: windows-latest
