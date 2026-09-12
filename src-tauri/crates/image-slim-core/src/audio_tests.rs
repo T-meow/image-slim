@@ -223,9 +223,10 @@ fn no_gain_conversion_keeps_original_bytes_and_does_not_create_a_fake_mp3() {
     assert_eq!(summary.unchanged, 1, "{events:?}");
     assert_eq!(summary.failed, 0);
     assert_eq!(events.last().unwrap().status, TaskStatus::Unchanged);
+    let output_path = events.last().unwrap().output_path.as_ref().unwrap();
     assert_eq!(
-        events.last().unwrap().output_path.as_deref(),
-        Some(scanner::normalize_display_path(&source).as_str())
+        dunce::canonicalize(output_path).unwrap(),
+        dunce::canonicalize(&source).unwrap()
     );
     assert_eq!(fs::read(source).unwrap(), OGG);
     assert!(!dir.path().join("compressed/tone.ogg.mp3").exists());

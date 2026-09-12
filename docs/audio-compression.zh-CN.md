@@ -59,4 +59,7 @@
 - 提交与推送：`c239ad304b36eed5b2bd9816dbdd3d32fe684190` 已推送到 GitHub `main`。常规 Git HTTPS 因连接超时/重置失败后，使用 GitHub Git database API 上传对象，核对完整源码树 `ad31990e1cb84541339b9ecdc18bc2f9d5634905` 和 commit SHA 与本地完全一致，再以 `force: false` 更新分支；未改变提交或覆盖远端历史。传输记录：`src-tauri/target/audio-validation/v0.2.0-api-push.json`。
 - 附件与官网：`v0.2.0` Release 草稿已创建，7 个附件均已上传并核对 GitHub digest 和大小；目标 commit 为上述提交。Pages 运行 `34700171520` 成功，在线官网 HTML 与本地 `site/index.html` 一致。
 - CI 修正：首次 Quality checks（`34700171470`）在 Clippy 失败。日志确认虽然 workflow 安装 1.96.0，仓库 `rust-toolchain.toml` 的 `stable` 覆盖设置让检查实际运行 Rust 1.98，触发旧 PNG 代码的新 lint。给 workflow 显式设置 `RUSTUP_TOOLCHAIN: 1.96.0`，并在现有配置检查中验证它，让两项 CI 任务均使用已约定版本；保留全部 lint 和测试要求，不修改图片算法或本机工具链。正式附件继续使用已验证的本机 Rust 1.96 构建，应用源码未因本次 CI 修正改变。
-- 待办：推送工具链修正、更新 Release 草稿目标、等待 Windows 检查完成，发布 Release 并核对公开标签/附件与 latest 指向。
+- 修正提交：`5b7215534e2c163bcf6ed59629525b0f83e8e9da` 已通过同样的哈希校验与非强制分支更新推送，触发检查运行 `34700747386`。此提交仅包含 CI 配置、配置检查脚本及本记录，不改变发布二进制的应用源码。
+- 第二轮检查：`34700747386` 的 Clippy、Agent 单元 2 项、服务集成 5 项、stdio 3 项均通过，包含此前本机因内存不足未通过的 2 项图片测试；核心 44 项通过、1 项忽略，1 项音频测试在比较 Windows 短路径 `RUNNER~1` 与长路径 `runneradmin` 时失败。修正该测试为比较规范化后的同一文件路径，保留源字节不变和不写入伪 MP3 的断言；应用处理结果正确，无需改变压缩逻辑。
+- 官网收尾：根据 GitHub 实际渲染的 README 锚点修正 CLI 示例链接。
+- 待办：推送测试与链接修正，更新草稿目标并等待完整 Windows 检查；发布 Release、核对公开标签/附件和 latest 指向，提交发布结果记录。
